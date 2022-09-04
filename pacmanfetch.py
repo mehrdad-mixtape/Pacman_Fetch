@@ -1,6 +1,7 @@
 from typing import List
 from time import sleep
 from rich.console import Console
+from random import shuffle
 import os, platform, subprocess, re, sys, distro
 
 F = "█"
@@ -15,6 +16,7 @@ BO = f"[dark_orange]{F}[/dark_orange]"
 BK = f"[black]{F}[/black]"
 
 colors = [BR, BC, BP, BO]
+shuffle(colors)
 
 pacman = """
 ▒▒▒▒▒▒▒▒▒████████████▒▒▒▒▒▒▒▒▒
