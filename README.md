@@ -16,6 +16,9 @@
 - **WSL: Windows Sub System**
 - **Mac?** Test and tell me result ;)
 
+## Font:
+Nerd font download [link](https://www.nerdfonts.com/font-downloads)
+
 ## How to use?
 - Look at the **bin** and run pacmanfetch (Just Linux!)
     ```bash
