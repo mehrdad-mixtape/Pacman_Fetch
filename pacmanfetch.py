@@ -1,3 +1,5 @@
+#!/bin/python3
+
 from typing import List
 from time import sleep
 from rich.console import Console
@@ -10,13 +12,22 @@ E = "▒"
 BW = f"[white]{F}[/white]"
 BC = f"[cyan]{F}[/cyan]"
 BY = f"[gold1]{F}[/gold1]"
+BG = f"[green]{F}[/green]"
+BI = f"[hot_pink]{F}[/hot_pink]"
 BR = f"[red]{F}[/red]"
+BN = f"[deep_pink3]{F}[/deep_pink3]"
 BP = f"[purple]{F}[/purple]"
 BO = f"[dark_orange]{F}[/dark_orange]"
+BS = f"[light_slate_blue]{F}[/light_slate_blue]"
+BB = f"[royal_blue1]{F}[/royal_blue1]"
+BE = f"[grey74]{F}[/grey74]"
+BH = f"[khaki3]{F}[/khaki3]"
 BK = f"[black]{F}[/black]"
 
-colors = [BR, BC, BP, BO]
+colors = [BR, BP, BO, BG, BC]
 shuffle(colors)
+
+limit = len(colors) + 1
 
 pacman = """
 ▒▒▒▒▒▒▒▒▒████████████▒▒▒▒▒▒▒▒▒
@@ -33,7 +44,7 @@ pacman = """
 ▒▒▒▒███████████████████████▒▒▒
 ▒▒▒▒▒▒███████████████████▒▒▒▒▒
 ▒▒▒▒▒▒▒▒▒█████████████▒▒▒▒▒▒▒▒
-""".replace(F, BY).replace('#', BK)
+""".replace(F, BY).replace('#', BK).replace('@', BW)
 
 ghost = """
 ▒▒▒▒▒▒▒██████████████▒▒▒▒▒▒▒▒▒
@@ -61,28 +72,28 @@ def clear() -> None:
 
 def cpu() -> str:
     if platform.system() == "Windows":
-        return f"[bold][dark_orange]Cpu[/dark_orange][/bold]: {platform.processor()}"
+        return f"[bold][dark_orange]  Cpu[/dark_orange][/bold]: {platform.processor()}"
     elif platform.system() == "Darwin":
         os.environ['PATH'] = os.environ['PATH'] + os.pathsep + '/usr/sbin'
         command ="sysctl -n machdep.cpu.brand_string"
-        return f"[bold][dark_orange]Cpu[/dark_orange][/bold]: {subprocess.check_output(command).strip()}"
+        return f"[bold][dark_orange]  Cpu[/dark_orange][/bold]: {subprocess.check_output(command).strip()}"
     elif platform.system() == "Linux":
         command = "cat /proc/cpuinfo"
         all_info = subprocess.check_output(command, shell=True).decode().strip()
         for line in all_info.split("\n"):
             if "model name" in line:
-                return f"[bold][dark_orange]Cpu[/dark_orange][/bold]:{''.join(re.sub('.*model name.*:', '', line, 1).split('CPU @ '))}"
+                return f"[bold][dark_orange]  Cpu[/dark_orange][/bold]:{''.join(re.sub('.*model name.*:', '', line, 1).split('CPU @ '))}"
     return "Cpu None!"
 
 def ram() -> str:
     mem_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
-    return f"[bold][slate_blue3]Ram[/slate_blue3][/bold]: {round(mem_bytes / (1024 ** 3))} GB"
+    return f"[bold][slate_blue3]  Ram[/slate_blue3][/bold]: {round(mem_bytes / (1024 ** 3))} GB"
 
 def oper() -> str:
-    return f"[bold][red]OS[/red][/bold]: {distro.id().title()} {distro.version()}"
+    return f"[bold][red]  OS[/red][/bold]: {distro.id().title()} {distro.version()}"
 
 def kernel() -> str:
-    return f"[bold][chartreuse3]Kernel[/chartreuse3][/bold]: {platform.release()}"
+    return f"[bold][chartreuse3]  Kernel[/chartreuse3][/bold]: {platform.release()}"
 
 def node() -> str:
     os.environ.get('USERNAME')
@@ -95,7 +106,7 @@ def node() -> str:
 def main(arg: List[str]) -> None:
     console = Console()
     w = os.get_terminal_size().columns // 30
-    m = 5 if w > 5 else w
+    m =  limit if w > limit else w
 
     clear()
 
@@ -125,12 +136,13 @@ def main(arg: List[str]) -> None:
 
     console.print(
         f"""[white]
-        [bold][green]Rig:[/green][/bold]
+        [bold][green]Pacmanfetch:[/green][/bold]
             {node()}
             {oper()}
             {kernel()}
             {cpu()}
             {ram()}
+              {''.join(colors).replace(F, F * 3)}
         [/white]"""
     )
 
