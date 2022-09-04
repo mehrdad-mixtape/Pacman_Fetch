@@ -1,0 +1,5 @@
+commonmark==0.9.1
+distro==1.7.0
+Pygments==2.13.0
+rich==12.5.1
+typing-extensions==4.3.0
