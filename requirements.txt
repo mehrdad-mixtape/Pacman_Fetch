@@ -1,5 +1,10 @@
+altgraph==0.17.2
 commonmark==0.9.1
 distro==1.7.0
+GPUtil==1.4.0
+psutil==5.9.2
 Pygments==2.13.0
+pyinstaller==5.3
+pyinstaller-hooks-contrib==2022.10
 rich==12.5.1
 typing-extensions==4.3.0
