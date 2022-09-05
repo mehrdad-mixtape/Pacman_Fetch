@@ -1,67 +1,132 @@
 #!/bin/python3
+# -*- coding: utf8 -*-
+
+#   MIT License
+
+# Copyright (c) 2022 mehrdad
+# Developed by mehrdad-mixtape https://github.com/mehrdad-mixtape/Pacman_Fetch
+
+# Python Version 3.6 or higher
+# Pacman_Fetch
+
+__repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
+__version__ = "v0.0.5"
 
 from typing import List
-from time import sleep
+from time import sleep, time
 from rich.console import Console
-from random import shuffle
-import os, platform, subprocess, re, sys, distro
+from random import shuffle, choice
+import os, platform, subprocess, \
+    re, sys, distro, psutil, GPUtil
 
+# Blocks
 F = "█"
 E = "▒"
+W = 29
+H = 12
 
+D = 0
+
+BANNER = """┌─────────────────┐
+               │  Pacmanfetch  │
+               └─────────────────┘"""
+
+# Colorful blocks
 BW = f"[white]{F}[/white]"
 BC = f"[cyan]{F}[/cyan]"
 BY = f"[gold1]{F}[/gold1]"
-BG = f"[green]{F}[/green]"
-BI = f"[hot_pink]{F}[/hot_pink]"
+BG = f"[chartreuse3]{F}[/chartreuse3]"
 BR = f"[red]{F}[/red]"
-BN = f"[deep_pink3]{F}[/deep_pink3]"
 BP = f"[purple]{F}[/purple]"
 BO = f"[dark_orange]{F}[/dark_orange]"
-BS = f"[light_slate_blue]{F}[/light_slate_blue]"
-BB = f"[royal_blue1]{F}[/royal_blue1]"
-BE = f"[grey74]{F}[/grey74]"
-BH = f"[khaki3]{F}[/khaki3]"
 BK = f"[black]{F}[/black]"
 
-colors = [BR, BP, BO, BG, BC]
-shuffle(colors)
+# Color list
+colors: List[str] = [
+    "[red]{}[/red]",
+    "[purple]{}[/purple]",
+    "[dark_orange]{}[/dark_orange]",
+    "[chartreuse3]{}[/chartreuse3]",
+    "[cyan]{}[/cyan]",
+    "[hot_pink]{}[/hot_pink]",
+    "[orange4]{}[/orange4]",
+    "[dark_cyan]{}[/dark_cyan]",
+    "[grey74]{}[/grey74]",
+    "[slate_blue3]{}[/slate_blue3]",
+    "[medium_violet_red]{}[/medium_violet_red]",
+    "[gold1]{}[/gold1]",
+    "[sea_green1]{}[/sea_green1]",
+    "[white]{}[/white]",
+]
 
-limit = len(colors) + 1
+color_buffer = """{}{}{}{}{}{}{}
+               {}{}{}{}{}{}{}"""
 
+# Random Block color list
+block_colors = [BR, BP, BO, BG, BC]
+shuffle(block_colors)
+limit = len(block_colors) + 1
+
+# CPU Brand:
+AMD = '[bold][red]AMD[/red][/bold]:'
+Intel = '[bold][cyan]Intel[/cyan][/bold]'
+
+# System info
+OS = '[bold][red]  OS[/red][/bold]:'
+CPU = '[bold][dark_orange]  Cpu[/dark_orange][/bold]:'
+GPU = '[bold][medium_violet_red]  Gpu[/bold][/medium_violet_red]:'
+RAM = '[bold][slate_blue3]  Ram[/slate_blue3][/bold]:'
+SWAP = '[bold][grey74]  Swap[/grey74][/bold]:'
+DISK = '[bold][hot_pink]  Disk[/hot_pink][/bold]:'
+KERNEL = '[bold][sea_green1]  Kernel[/sea_green1][/bold]:'
+PING = "[bold][gold1]  Ping[/gold1][/bold]:"
+NETWORK = "[bold][dark_cyan]  Network[/dark_cyan][/bold]:"
+UPTIME = "[bold][orange4]  Uptime[/orange4][/bold]:"
+NODE = "[bold] {}$ [yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan][/bold]"
+
+# Ghost: Width=29, Height=12
 pacman = """
-▒▒▒▒▒▒▒▒▒████████████▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒▒███████████████████▒▒▒▒▒
-▒▒▒▒███████████████████████▒▒▒
-▒▒███████████████████████▒▒▒▒▒
-▒████████████████████▒▒▒▒▒▒▒▒▒
-█████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒
-███████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-███████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-█████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒████████████████████▒▒▒▒▒▒▒▒▒
-▒▒███████████████████████▒▒▒▒▒
-▒▒▒▒███████████████████████▒▒▒
-▒▒▒▒▒▒███████████████████▒▒▒▒▒
-▒▒▒▒▒▒▒▒▒█████████████▒▒▒▒▒▒▒▒
-""".replace(F, BY).replace('#', BK).replace('@', BW)
+▒▒▒▒▒▒▒██████████████▒▒▒▒▒▒▒▒
+▒▒▒▒▒███████████████████▒▒▒▒▒
+▒▒▒███████████████████████▒▒▒
+▒█████████████████████▒▒▒▒▒▒▒
+██████████████████▒▒▒▒▒▒▒▒▒▒▒
+████████████████▒▒▒▒▒▒▒▒  ▒
+████████████████▒▒▒▒▒▒▒▒  ▒
+██████████████████▒▒▒▒▒▒▒▒▒▒▒
+▒█████████████████████▒▒▒▒▒▒▒
+▒▒▒███████████████████████▒▒▒
+▒▒▒▒▒███████████████████▒▒▒▒▒
+▒▒▒▒▒▒▒▒█████████████▒▒▒▒▒▒▒▒
+""".replace(F, BY)
 
+# Ghost: Width=29, Height=12
 ghost = """
-▒▒▒▒▒▒▒██████████████▒▒▒▒▒▒▒▒▒
-▒▒▒▒▒██████████████████▒▒▒▒▒▒▒
-▒▒▒@@@@@@█████@@@@@@█████▒▒▒▒▒
-▒██@@##@@█████@@##@@███████▒▒▒
-▒██####@@█████####@@███████▒▒▒
-▒██@@@@@@█████@@@@@@███████▒▒▒
-▒██████████████████████████▒▒▒
-▒██████████████████████████▒▒▒
-▒██████████████████████████▒▒▒
-▒██████████████████████████▒▒▒
-▒██████████████████████████▒▒▒
-▒████▒▒████▒▒▒▒▒▒████▒▒████▒▒▒
-▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒▒▒▒▒██████████████▒▒▒▒▒▒▒▒
+▒▒▒▒▒██████████████████▒▒▒▒▒▒
+▒▒▒@@@@@@█████@@@@@@█████▒▒▒▒
+▒██@@##@@█████@@##@@███████▒▒
+▒██####@@█████####@@███████▒▒
+▒██@@@@@@█████@@@@@@███████▒▒
+▒██████████████████████████▒▒
+▒██████████████████████████▒▒
+▒██████████████████████████▒▒
+▒██████████████████████████▒▒
+▒████▒▒████▒▒▒▒▒▒████▒▒████▒▒
+▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒
 """
+
+# Ping:
+cmd = 'ping {} 1 8.8.8.8'
+if platform.system() == "Windows":
+    cmd.format('-n')
+elif platform.system() in "Linux Darwin":
+    cmd.format('-c')
+ping_proc = subprocess.Popen(
+    cmd.format('-c'),
+    shell=True,
+    stdout=subprocess.PIPE
+)
 
 def clear() -> None:
     if platform.system() in "Linux Darwin":
@@ -71,78 +136,160 @@ def clear() -> None:
     else: pass
 
 def cpu() -> str:
+    cpu_info = ""
     if platform.system() == "Windows":
-        return f"[bold][dark_orange]  Cpu[/dark_orange][/bold]: {platform.processor()}"
+        cpu_info = f"{CPU}{platform.processor()}"
+
     elif platform.system() == "Darwin":
         os.environ['PATH'] = os.environ['PATH'] + os.pathsep + '/usr/sbin'
-        command ="sysctl -n machdep.cpu.brand_string"
-        return f"[bold][dark_orange]  Cpu[/dark_orange][/bold]: {subprocess.check_output(command).strip()}"
+        cmd ="sysctl -n machdep.cpu.brand_string"
+        cpu_info = f"{CPU}{subprocess.check_output(cmd).strip()}"
+
     elif platform.system() == "Linux":
-        command = "cat /proc/cpuinfo"
-        all_info = subprocess.check_output(command, shell=True).decode().strip()
+        cmd = "cat /proc/cpuinfo"
+        all_info = subprocess.check_output(cmd, shell=True).decode().strip()
         for line in all_info.split("\n"):
             if "model name" in line:
-                return f"[bold][dark_orange]  Cpu[/dark_orange][/bold]:{''.join(re.sub('.*model name.*:', '', line, 1).split('CPU @ '))}"
-    return "Cpu None!"
+                cpu_info = f"{CPU}{''.join(re.sub(r'.*model name.*:', '', line, 1))}".replace('CPU @ ', '')
+                break
+    else:
+        cpu_info = f"{CPU} None!"
+
+    return cpu_info + f" {psutil.cpu_count()} Cores"
 
 def ram() -> str:
-    mem_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
-    return f"[bold][slate_blue3]  Ram[/slate_blue3][/bold]: {round(mem_bytes / (1024 ** 3))} GB"
+    mem = psutil.virtual_memory()
+    usage = round(mem.percent)
+    used = round(mem.used / (1024 ** 3), 1)
+    total = round(mem.total / (1024 ** 3), 1)
+    return f"{RAM} {used} GB  {total} GB usage: {usage}%"
+
+def swap() -> str:
+    swap = psutil.swap_memory()
+    usage = round(swap.percent)
+    used = round(swap.used / (1024 ** 3), 1)
+    total = round(swap.total / (1024 ** 3), 1)
+    return f"{SWAP} {used} GB  {total} GB usage: {usage}%"
+
+def disk() -> str:
+    home = psutil.disk_usage('/home')
+    home_total = round(home.total / (1024 ** 3), 1)
+    home_free = round(home.free / (1024 ** 3), 1)
+
+    root = psutil.disk_usage('/')
+    root_total = round(root.total / (1024 ** 3), 1)
+    root_free = round(root.free / (1024 ** 3), 1)
+    
+    return f"{DISK} Root({root_total} GB) free: {root_free} GB │ Home({home_total} GB) free: {home_free} GB"
+
+def ping() -> str:
+    stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
+    time = re.findall(r'time=.*ms', stdout)[0].replace('time=', '')
+    return f"{PING} {time}  8.8.8.8"
+
+def network() -> str:
+    if_addrs = psutil.net_if_addrs()
+    iface_addrs: List[str] = []
+    for interface_name, interface_addresses in if_addrs.items():
+        if interface_name.startswith(('w', 'e')):
+            for address in interface_addresses:
+                if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
+                    iface_addrs.append(f"{interface_name}  {address.address}")
+
+    iface_buffer = "{} " * len(iface_addrs)
+    iface_buffer = iface_buffer.format(*iface_addrs).strip()
+    return f"{NETWORK} {iface_buffer}"
+
+def gpu() -> str:
+    gpus = GPUtil.getGPUs()
+    if not gpus:
+        return f"{GPU} None!"
+    else:
+        gpu_buffer = "{} " * len(gpus)
+        gpu_buffer = gpu_buffer.format(*[g.name for g in gpus]).strip()
+        return f"{GPU} {gpu_buffer}"
 
 def oper() -> str:
-    return f"[bold][red]  OS[/red][/bold]: {distro.id().title()} {distro.version()}"
+    return f"{OS} {distro.id().title()} {distro.version()}"
 
 def kernel() -> str:
-    return f"[bold][chartreuse3]  Kernel[/chartreuse3][/bold]: {platform.release()}"
+    return f"{KERNEL} {platform.release()}"
 
 def node() -> str:
-    os.environ.get('USERNAME')
+    global D
+    shell = subprocess.check_output(
+        'echo $SHELL',
+        shell=True
+    ).decode('utf-8').split('/')[-1].strip()
     if platform.system() in "Linux Darwin":
-        return f"[bold][yellow2]{os.environ.get('USER')}[/yellow2][red]@[/red][cyan]{platform.node()}[/cyan][/bold]"
+        user = os.environ.get('USER')
+        host = platform.node()
+        D = len(shell) + len(user) + len(host)
+        return NODE.format(shell, user, host)
     elif platform.system() == 'Windows':
-        return f"[bold][yellow2]{os.environ.get('USERNAME')}[/yellow2][/bold]"
+        user = os.environ.get('USERNAME')
+        host = platform.node()
+        D = len(user) + len(host)
+        return NODE.format(user, host)
 
+def uptime() -> str:
+    system_up = round(time() - psutil.boot_time())
+    hours = system_up // 60 // 60
+    minutes = system_up // 60 % 60
+    seconds = system_up % 60
+    return f"{UPTIME} {hours}:{minutes}:{seconds}"
 
 def main(arg: List[str]) -> None:
     console = Console()
-    w = os.get_terminal_size().columns // 30
-    m =  limit if w > limit else w
+    max_width = os.get_terminal_size().columns // 29 # 29 = width of ghost
+    max_ghost =  limit if max_width > limit else max_width # how many ghost can place on terminal
 
     clear()
 
-    buffer = "{}" * m
-    for n in range(15):
-        console.print(buffer.format(
+    # Draw pacman and ghosts
+    ghost_buffer = "{}" * max_ghost 
+    for n in range(H + 1):
+        console.print(ghost_buffer.format(
             pacman.split('\n')[n].replace('▒', ' '),
                 *(
                     ghost.split('\n')[n] \
                         .replace('▒', ' ') \
-                        .replace(F, colors[i]) \
+                        .replace(F, block_colors[i]) \
                         .replace('@', BW) \
                         .replace('#', BK) \
-                        for i in range(m - 1)
+                        for i in range(max_ghost - 1)
                 ),
             )
         )
+        # Argument management
         if len(arg) == 1:
-            sleep(0.0)
+            sleep(0.01)
         elif len(arg) == 2:
             if arg[1].isdigit():
                 sleep(int(arg[1]) / 1000)
             else:
-                sleep(0.0)
+                sleep(0.01)
         else:
-            sleep(0.0)
+            sleep(0.01)
 
+    # Show system info
     console.print(
         f"""[white]
-        [bold][green]Pacmanfetch:[/green][/bold]
             {node()}
+            {'─' * D}───────
             {oper()}
             {kernel()}
             {cpu()}
+            {gpu()}
             {ram()}
-              {''.join(colors).replace(F, F * 3)}
+            {swap()}
+            {disk()}
+            {ping()}
+            {network()}
+            {uptime()}
+            {'─' * D}───────
+              {color_buffer.format(*[color.format(F * 3) for color in colors])}
+               {choice(colors).format(BANNER)}
         [/white]"""
     )
 
