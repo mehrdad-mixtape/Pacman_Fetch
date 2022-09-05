@@ -10,7 +10,7 @@
 # Pacman_Fetch
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = "v0.1.0"
+__version__ = "v0.1.1"
 
 from typing import List
 from time import sleep, time
@@ -122,6 +122,7 @@ if platform.system() == "Windows":
     cmd.format('-n')
 elif platform.system() in "Linux Darwin":
     cmd.format('-c')
+
 ping_proc = subprocess.Popen(
     cmd.format('-c'),
     shell=True,
@@ -183,9 +184,13 @@ def disk() -> str:
     return f"{DISK} Root({root_total} GB) free: {root_free} GB │ Home({home_total} GB) free: {home_free} GB"
 
 def ping() -> str:
-    stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
-    time = re.findall(r'time=.*ms', stdout)[0].replace('time=', '')
-    return f"{PING} {time}  8.8.8.8"
+    try:
+        stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
+        time = re.findall(r'time=.*ms', stdout)[0].replace('time=', '')
+        return f"{PING} {time}  8.8.8.8"
+    except Exception:
+        return f"{PING} 999ms  8.8.8.8"
+
 
 def network() -> str:
     if_addrs = psutil.net_if_addrs()
