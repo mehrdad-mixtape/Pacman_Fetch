@@ -13,24 +13,27 @@
 
 ## Platform:
 - **Linux**
-- **WSL: Windows Sub System**
+- **WSL: Windows Sub System(recommended)** 
 - **Mac?** Test and tell me result ;)
 
 ## Font:
 Nerd font download [link](https://www.nerdfonts.com/font-downloads)
 
 ## How to use?
-- Look at the **bin** and run pacmanfetch (Just Linux!)
+- **First way(Just Linux!)**: Run executable file that exist on **bin/** and run pacmanfetch
     ```bash
     ./bin/pacmanfetch
     ```
-- Run pacmanfetch.py
+- **Second way**: Run pacmanfetch.py
     1. Install requirements
         - Linux or mac:
             ```bash
             pip3 install -r requirements.txt
             ```
-        - Windows:
+        - Windows(WSL):
+            - **Notice! If you wanna install `psutil` on windows (WSL is not enable) you may get this error:**
+            
+            *Microsoft Visual C++ 14.0 or greater is required (check and install new version of Microsoft Visual C++)*
             ```bash
             pip install -r requirements.txt
             ```
@@ -39,7 +42,7 @@ Nerd font download [link](https://www.nerdfonts.com/font-downloads)
             ```bash
             python3 pacmanfetch.py
             ```
-        - Windows:
+        - Windows(WSL):
             ```bash
             python pacmanfetch.py
             ```
