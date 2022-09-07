@@ -12,6 +12,10 @@
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
 __version__ = "v0.1.1"
 
+""" Pacman Fetch!
+For Better Experiance Install icon-in-terminal:
+Github repo: https://github.com/sebastiencs/icons-in-terminal """
+
 from typing import List
 from time import sleep, time
 from rich.console import Console
@@ -191,12 +195,11 @@ def ping() -> str:
     except Exception:
         return f"{PING} 999ms  8.8.8.8"
 
-
 def network() -> str:
     if_addrs = psutil.net_if_addrs()
     iface_addrs: List[str] = []
     for interface_name, interface_addresses in if_addrs.items():
-        if interface_name.startswith(('w', 'e')):
+        if interface_name.startswith(('w', 'e', 'u')):
             for address in interface_addresses:
                 if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
                     iface_addrs.append(f"{interface_name}  {address.address}")
@@ -246,7 +249,7 @@ def uptime() -> str:
 
 def main(arg: List[str]) -> None:
     console = Console()
-    max_width = os.get_terminal_size().columns // 29 # 29 = width of ghost
+    max_width = os.get_terminal_size().columns // (29) # 29 = width of ghost
     max_ghost =  limit if max_width > limit else max_width # how many ghost can place on terminal
 
     clear()
