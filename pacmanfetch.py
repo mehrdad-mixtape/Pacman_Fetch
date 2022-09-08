@@ -1,7 +1,7 @@
 #!/bin/python3
 # -*- coding: utf8 -*-
 
-#   MIT License
+# MIT License
 
 # Copyright (c) 2022 mehrdad
 # Developed by mehrdad-mixtape https://github.com/mehrdad-mixtape/Pacman_Fetch
@@ -86,7 +86,7 @@ KERNEL = '[bold][sea_green1]  Kernel[/sea_green1][/bold]:'
 PING = "[bold][gold1]  Ping[/gold1][/bold]:"
 NETWORK = "[bold][dark_cyan]  Network[/dark_cyan][/bold]:"
 UPTIME = "[bold][orange4]  Uptime[/orange4][/bold]:"
-NODE = "[bold] {}$ [yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan][/bold]"
+NODE = "[bold][white] {}$ [/white][yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan][/bold]"
 
 # Ghost: Width=29, Height=12
 pacman = """
@@ -248,9 +248,10 @@ def uptime() -> str:
     return f"{UPTIME} {hours}:{minutes}:{seconds}"
 
 def main(arg: List[str]) -> None:
+    sleep(0.001) # Wait for terminal
     console = Console()
     max_width = os.get_terminal_size().columns // (29) # 29 = width of ghost
-    max_ghost =  limit if max_width > limit else max_width # how many ghost can place on terminal
+    max_ghost =  limit if max_width > limit else max_width # How many ghost can place on terminal
 
     clear()
 
@@ -282,7 +283,7 @@ def main(arg: List[str]) -> None:
 
     # Show system info
     console.print(
-        f"""[white]
+        f"""
             {node()}
             {'─' * D}───────
             {oper()}
@@ -298,7 +299,7 @@ def main(arg: List[str]) -> None:
             {'─' * D}───────
               {color_buffer.format(*[color.format(F * 3) for color in colors])}
                {choice(colors).format(BANNER)}
-        [/white]"""
+        """
     )
 
 if __name__ == '__main__':
