@@ -17,7 +17,7 @@
 - **Mac?** Test and tell me result ;)
 
 ## Font:
-Nerd font download [link](https://www.nerdfonts.com/font-downloads)
+icon_in_terminal project [github](https://github.com/sebastiencs/icons-in-terminal) link
 
 ## How to use?
 - **First way(Just Linux!)**: Run executable file that exist on **bin/** and run pacmanfetch
