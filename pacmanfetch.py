@@ -40,8 +40,7 @@ D = 0
 
 MAIN_BANNER = """[blink]┌───────────────────┐
            │   Pacmanfetch   │
-           └───────────────────┘
-[/blink]"""
+           └───────────────────┘[/blink]"""
 
 # Color list
 # -------------------------------------------------------------------
@@ -107,7 +106,7 @@ OS_logos = {
 # -------------------------------------------------------------------
 block_colors = [BR, BP, BO, BG, BC]
 shuffle(block_colors)
-limit = len(block_colors)
+limit = len(block_colors) + 1
 
 # CPU Brand:
 # -------------------------------------------------------------------
@@ -340,7 +339,7 @@ def uptime() -> str:
     hours = system_up // 60 // 60
     minutes = system_up // 60 % 60
     seconds = system_up % 60
-    return f" {hours}:{minutes}:{seconds}"
+    return f" {hours}h {minutes}m {seconds}s"
 
 def main() -> None:
     clear()
