@@ -13,14 +13,20 @@
 
 ## Platform:
 - **Linux**
-- **WSL: Windows Sub System(recommended)** 
+- **WSL: Windows Sub System(recommended)**
+	- **Windows terminal** app is better than powershell and cmd
 - **Mac?** Test and tell me result ;)
 
 ## Font:
 icon_in_terminal project [github](https://github.com/sebastiencs/icons-in-terminal) link
+- requierment package:
+	- Debian:
+	```bash
+	sudo apt install fontconfig
+	```
 
 ## How to use?
-- **First way(Just Linux!)**: Run executable file that exist on **bin/** and run pacmanfetch
+- **First way(Support *linux* and *wsl*)**: Run executable file that exist on **bin/** and run pacmanfetch
     ```bash
     ./bin/pacmanfetch
     ```
