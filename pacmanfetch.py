@@ -122,20 +122,19 @@ system_info_colors = [
 ]
 
 system_info_title = [
-    # f"        {OS_logos.get(OS_name, ' ')} OS:",
-    '          OS:',
+    f"        {OS_logos.get(OS_name, ' ')} OS:",
     '          Kernel:',
     '          Cpu:',
     '          Gpu:',
     '          Ram:',
     '          Swap:',
     '          Disk:',
-    '          Ping:',
-    '          Network:',
+    '          Ping:',
+    '          Network:',
     '          Uptime:',
 ]
 
-NODE = "[white]  {}$ [/white][yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan]"
+NODE = "[white]  {}$ [/white][yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan]"
 
 # Ghost: Width=29, Height=12
 # -------------------------------------------------------------------
@@ -334,7 +333,7 @@ def node() -> str:
         user = os.environ.get('USERNAME')
         host = platform.node()
         D = len(user) + len(host)
-        return NODE.format(user, host)
+        return NODE.format(':\>', user, host)
 
 def uptime() -> str:
     system_up = round(time() - psutil.boot_time())
