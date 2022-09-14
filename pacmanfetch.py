@@ -10,7 +10,7 @@
 # Pacman_Fetch
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = "v0.4.0"
+__version__ = "v0.4.1"
 
 """ Pacman Fetch!
 For Better Experiance Install icon-in-terminal:
@@ -80,6 +80,7 @@ COLOR_BANNER = """{}{}{}{}{}{}{}
 # -------------------------------------------------------------------
 OS_name = distro.id()
 OS_logos = {
+    # It is not compatible for all os, because of icon-fonts.
     'nix': ' ',
     'ubuntu': ' ',
     'debian': ' ',
@@ -121,19 +122,20 @@ system_info_colors = [
 ]
 
 system_info_title = [
-    f"        {OS_logos.get(OS_name, ' ')} OS:",
+    # f"        {OS_logos.get(OS_name, ' ')} OS:",
+    '          OS:',
     '          Kernel:',
     '          Cpu:',
     '          Gpu:',
     '          Ram:',
     '          Swap:',
     '          Disk:',
-    '          Ping:',
-    '          Network:',
+    '          Ping:',
+    '          Network:',
     '          Uptime:',
 ]
 
-NODE = "[white]  {}$ [/white][yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan]"
+NODE = "[white]  {}$ [/white][yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan]"
 
 # Ghost: Width=29, Height=12
 # -------------------------------------------------------------------
