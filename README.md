@@ -40,9 +40,10 @@ icon_in_terminal project [github](https://github.com/sebastiencs/icons-in-termin
     ```bash
     ./print_icons.sh
     ```
+- Check this [tutorial](https://drive.google.com/file/d/1OzPaTG-C80zPBTJEpZWSkWy1y1jB03Pq/view?usp=sharing) for install fonts
 
 ## How to use?
-- **First way(Support *linux* and *wsl*)**: Run executable file that exist on **bin/** and run pacmanfetch
+- **First way(Support *linux* and *wsl*)**: Run executable file that exist on **bin/** and run it.
     ```bash
     ./bin/pacmanfetch
     ```
