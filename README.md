@@ -49,24 +49,30 @@ icon_in_terminal project [github](https://github.com/sebastiencs/icons-in-termin
     ```
 - **Second way**: Run pacmanfetch.py
     1. Install requirements
-        - Linux or mac:
+        - Linux or mac or WSL:
             ```bash
             pip3 install -r requirements.txt
             ```
-        - Windows(WSL):
+        - Windows:
             - **Notice! If you wanna install `psutil` on windows (WSL is not enable) you may get this error:**
             
             *Microsoft Visual C++ 14.0 or greater is required (check and install new version of Microsoft Visual C++)*
             ```bash
             pip install -r requirements.txt
             ```
+            - I don't recommend to use it on **cmd** or **powershell**
     2. Run
-        - Linux or mac:
+        - Linux or mac or WSL:
             ```bash
             python3 pacmanfetch.py
             ```
-        - Windows(WSL):
-            ```bash
-            python pacmanfetch.py
-            ```
 
+    - Check the switches of pacmanfetch:
+    ```bash
+    python3 pacmanfetch -h
+    ```
+    - Get delay:
+    ```bash
+    # typewriter style
+    python3 pacmanfetch -d 10
+    ```
