@@ -38,7 +38,8 @@ H = 12
 # -------------------------------------------------------------------
 D = 0
 
-MAIN_BANNER = """[blink]┌───────────────────┐
+MAIN_BANNER = """
+    [blink]┌───────────────────┐
            │   Pacmanfetch   │
            └───────────────────┘[/blink]"""
 
@@ -178,27 +179,25 @@ def clear() -> None:
     else: pass
 
 def cpu() -> str:
-    cpu_info = f" Platform unsupported!"
+    cpu_info = " Platform unsupported!"
     if platform.system() == 'Linux':
         cmd = 'cat /proc/cpuinfo'
         all_info = subprocess.check_output(cmd, shell=True).decode().strip()
         for line in all_info.split('\n'):
             if 'model name' in line:
-                cpu_info = ''.join(re.sub(r'.*model name.*:', '', line)).replace('CPU @ ', '').strip()
+                cpu_info = ''.join(re.sub(r".*model name.*:", '', line)).replace('CPU @ ', '').strip()
                 break
             elif 'Hardware' in line:
-                hardware = ''.join(re.sub(r'(.*Hardware.*:)|(\(.*\))', '', line))
-                processor = ''.join(re.sub(r'.*Processor.*:', '', line))
-                cpu_info = f"{processor} {hardware}"
+                cpu_info = ''.join(re.sub(r"(.*Hardware.*:)|(\(.*\))", '', line))
                 break
 
     elif platform.system() == 'Darwin':
         os.environ['PATH'] = os.environ['PATH'] + os.pathsep + '/usr/sbin'
         cmd ='sysctl -n machdep.cpu.brand_string'
-        cpu_info = f"{subprocess.check_output(cmd).strip()}"
+        cpu_info = subprocess.check_output(cmd).strip()
 
     elif platform.system() == 'Windows':
-        cpu_info = f"{platform.processor().strip()}"
+        cpu_info = platform.processor().strip()
 
     return f" {cpu_info} {psutil.cpu_count()} Cores"
 
@@ -282,7 +281,8 @@ def gpu() -> str:
         stdout = subprocess.run(
             'lspci',
             shell=True,
-            stdout=subprocess.PIPE
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL
         ).stdout.decode('utf-8')
         amd: Dict[str, List[str]] = {'AMD': [
             *re.findall(r"VGA.*(AMD.*) \(.*", stdout),
