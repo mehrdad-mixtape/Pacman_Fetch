@@ -184,7 +184,7 @@ def cpu() -> str:
         all_info = subprocess.check_output(cmd, shell=True).decode().strip()
         for line in all_info.split('\n'):
             if 'model name' in line:
-                cpu_info = f"{''.join(re.sub(r'.*model name.*:', '', line, 1))}"\
+                cpu_info = f"{''.join(re.sub(r'(.*model name.*:)|(.*Hardware.*:)', '', line, 1))}" \
                     .replace('CPU @ ', '').strip()
                 break
 
