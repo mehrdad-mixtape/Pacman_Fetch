@@ -1,4 +1,3 @@
-altgraph==0.17.2
 commonmark==0.9.1
 distro==1.7.0
 Pygments==2.13.0
