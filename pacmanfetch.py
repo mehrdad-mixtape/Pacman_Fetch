@@ -187,7 +187,7 @@ def cpu() -> str:
                 cpu_info = ''.join(re.sub(r".*model name.*:", '', line)).replace('CPU @ ', '').strip()
                 break
             elif 'Hardware' in line:
-                cpu_info = ''.join(re.sub(r"(.*Hardware.*:)|(\(.*\))", '', line))
+                cpu_info = ''.join(re.sub(r"(.*Hardware.*:)|(\(.*\))", '', line)).strip()
                 break
 
     elif platform.system() == 'Darwin':
