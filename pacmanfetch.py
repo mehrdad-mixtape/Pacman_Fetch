@@ -184,12 +184,11 @@ def cpu() -> str:
         all_info = subprocess.check_output(cmd, shell=True).decode().strip()
         for line in all_info.split('\n'):
             if 'model name' in line:
-                cpu_info = f"{''.join(re.sub(r'.*model name.*:', '', line))}" \
-                    .replace('CPU @ ', '').strip()
+                cpu_info = ''.join(re.sub(r'.*model name.*:', '', line)).replace('CPU @ ', '').strip()
                 break
             elif 'Hardware' in line:
-                hardware = f"{''.join(re.sub(r'(.*Hardware.*:)|(\(.*\))', '', line))}"
-                processor = f"{''.join(re.sub(r'.*Processor.*:', '', line))}"
+                hardware = ''.join(re.sub(r'(.*Hardware.*:)|(\(.*\))', '', line))
+                processor = ''.join(re.sub(r'.*Processor.*:', '', line))
                 cpu_info = f"{processor} {hardware}"
                 break
 
@@ -302,7 +301,7 @@ def gpu() -> str:
             for gpu in finder(brand):
                 gpu_info += gpu
         
-        gpu_info = f"{gpu_info.strip('│ ')}"
+        gpu_info = gpu_info.strip('│ ')
 
     elif platform.system() == 'Darwin':
         gpu_info = 'Can\'t find Gpu and Not implemented'
