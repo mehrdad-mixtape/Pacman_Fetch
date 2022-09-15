@@ -257,7 +257,7 @@ def network() -> str:
     return f" {iface_buffer}"
 
 def gpu() -> str:
-    gpu_info = ''
+    gpu_info = 'Can\'t find Gpu'
     def finder(brand: Dict[str, List[str]]) -> Generator[str, None, None]:
         patterns = {
             'AMD': r"\[.*\].*\[.*\]",
