@@ -10,7 +10,7 @@
 # Pacman_Fetch
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = "v0.4.1"
+__version__ = "v0.4.2"
 
 """ Pacman Fetch!
 For Better Experiance Install icon-in-terminal:
@@ -257,7 +257,7 @@ def network() -> str:
     return f" {iface_buffer}"
 
 def gpu() -> str:
-    gpu_info = 'Can\'t find Gpu'
+    gpu_info = ''
     def finder(brand: Dict[str, List[str]]) -> Generator[str, None, None]:
         patterns = {
             'AMD': r"\[.*\].*\[.*\]",
@@ -300,7 +300,10 @@ def gpu() -> str:
             for gpu in finder(brand):
                 gpu_info += gpu
         
-        gpu_info = gpu_info.strip('│ ')
+        if not gpu_info:
+            gpu_info = 'Can\'t find Gpu'
+        else:
+            gpu_info = gpu_info.strip('│ ')
 
     elif platform.system() == 'Darwin':
         gpu_info = 'Can\'t find Gpu and Not implemented'
