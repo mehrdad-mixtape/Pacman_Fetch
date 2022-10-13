@@ -129,8 +129,8 @@ system_info_title = [
     '          Ram:',
     '          Swap:',
     '          Disk:',
-    '          Ping:',
     '          Network:',
+    '          Ping:',
     '          Uptime:',
 ]
 
@@ -404,7 +404,7 @@ def main() -> None:
     system_info_details: List[str] = [
         operate(), kernel(), cpu(),
         gpu(), ram(), swap(), disk(),
-        ping(), network(), uptime()
+        network(), ping(), uptime()
     ]
 
     console.print(f"""
