@@ -10,10 +10,10 @@
 # Pacman_Fetch
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = "v0.4.2"
+__version__ = "v0.4.4"
 
 """ Pacman Fetch!
-For Better Experiance Install icon-in-terminal:
+For Better Experience Install icon-in-terminal:
 Github repo: https://github.com/sebastiencs/icons-in-terminal """
 
 from typing import List, Dict, Generator
@@ -136,6 +136,10 @@ system_info_title = [
 
 NODE = "[white]  {}$ [/white][yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan]"
 
+# IP addresses
+# -------------------------------------------------------------------
+iface_addrs: List[str] = []
+
 # Ghost: Width=29, Height=12
 # -------------------------------------------------------------------
 pacman = """
@@ -237,24 +241,29 @@ def ping() -> str:
         stdout=subprocess.PIPE
     )
     try:
-        stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
-        time = re.findall(r"time=.*ms", stdout)[0].replace('time=', '')
-        return f" {time}   8.8.8.8"
+        if not iface_addrs:
+            return f" 999ms   8.8.8.8"
+        else:
+            stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
+            time = re.findall(r"time=.*ms", stdout)[0].replace('time=', '')
+            return f" {time}   8.8.8.8"
     except Exception:
         return f" 999ms   8.8.8.8"
 
 def network() -> str:
     if_addrs = psutil.net_if_addrs()
-    iface_addrs: List[str] = []
     for interface_name, interface_addresses in if_addrs.items():
         if interface_name.startswith(('w', 'e', 'u')):
             for address in interface_addresses:
                 if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
                     iface_addrs.append(f"{interface_name}  {address.address}")
 
-    iface_buffer = "{} " * len(iface_addrs)
-    iface_buffer = iface_buffer.format(*iface_addrs).strip()
-    return f" {iface_buffer}"
+    if not iface_addrs:
+        return ' Check your  Connections'
+    else:
+        iface_buffer = "{} " * len(iface_addrs)
+        iface_buffer = iface_buffer.format(*iface_addrs).strip()
+        return f" {iface_buffer}"
 
 def gpu() -> str:
     gpu_info = ''
