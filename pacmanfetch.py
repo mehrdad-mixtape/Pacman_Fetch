@@ -10,7 +10,7 @@
 # Pacman_Fetch
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = "v0.4.5"
+__version__ = "v0.4.6"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -248,7 +248,7 @@ def ping() -> str:
             time = re.findall(r"time=.*ms", stdout)[0].replace('time=', '')
             return f" {time}   8.8.8.8"
     except Exception:
-        return f" 999ms   8.8.8.8"
+        return f" 999ms   8.8.8.8"
 
 def network() -> str:
     if_addrs = psutil.net_if_addrs()
