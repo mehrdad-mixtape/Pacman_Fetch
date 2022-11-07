@@ -236,15 +236,14 @@ def ping() -> str:
     elif platform.system() in "Linux Darwin":
         cmd = cmd.format('-c')
     try:
-        ping_proc = subprocess.Popen(
-            cmd,
-            shell=True,
-            stdout=subprocess.PIPE
-        )
-    
         if not iface_addrs:
             return f" 999ms   8.8.8.8"
         else:
+            ping_proc = subprocess.Popen(
+                cmd,
+                shell=True,
+                stdout=subprocess.PIPE
+            )
             stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
             time = re.findall(r"time=.*ms", stdout)[0].replace('time=', '')
             return f" {time}   8.8.8.8"
