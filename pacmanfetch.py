@@ -10,7 +10,7 @@
 # Pacman_Fetch
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = "v0.4.6"
+__version__ = "v0.4.8"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -235,12 +235,13 @@ def ping() -> str:
         cmd = cmd.format('-n')
     elif platform.system() in "Linux Darwin":
         cmd = cmd.format('-c')
-    ping_proc = subprocess.Popen(
-        cmd,
-        shell=True,
-        stdout=subprocess.PIPE
-    )
     try:
+        ping_proc = subprocess.Popen(
+            cmd,
+            shell=True,
+            stdout=subprocess.PIPE
+        )
+    
         if not iface_addrs:
             return f" 999ms   8.8.8.8"
         else:
@@ -256,13 +257,13 @@ def network() -> str:
         if interface_name.startswith(('w', 'e', 'u')):
             for address in interface_addresses:
                 if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
-                    iface_addrs.append(f"{interface_name}   {address.address}")
+                    iface_addrs.append(f"{interface_name}   {address.address} |")
 
     if not iface_addrs:
         return ' Check your   Connections'
     else:
         iface_buffer = "{} " * len(iface_addrs)
-        iface_buffer = iface_buffer.format(*iface_addrs).strip()
+        iface_buffer = iface_buffer.format(*iface_addrs).strip(' |')
         return f" {iface_buffer}"
 
 def gpu() -> str:
