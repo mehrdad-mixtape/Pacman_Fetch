@@ -10,7 +10,7 @@
 # Pacman_Fetch
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = "v0.4.8"
+__version__ = "v0.4.9"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -253,7 +253,7 @@ def ping() -> str:
 def network() -> str:
     if_addrs = psutil.net_if_addrs()
     for interface_name, interface_addresses in if_addrs.items():
-        if interface_name.startswith(('w', 'e', 'u')):
+        if interface_name.startswith(('w', 'e', 'u', 't')):
             for address in interface_addresses:
                 if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
                     iface_addrs.append(f"{interface_name}   {address.address} |")
