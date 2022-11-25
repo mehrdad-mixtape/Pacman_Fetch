@@ -256,13 +256,13 @@ def network() -> str:
         if interface_name.startswith(('w', 'e', 'u', 't')):
             for address in interface_addresses:
                 if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
-                    iface_addrs.append(f"{interface_name}   {address.address} |")
+                    iface_addrs.append(f"{interface_name}   {address.address} │")
 
     if not iface_addrs:
         return ' Check your   Connections'
     else:
         iface_buffer = "{} " * len(iface_addrs)
-        iface_buffer = iface_buffer.format(*iface_addrs).strip(' |')
+        iface_buffer = iface_buffer.format(*iface_addrs).strip(' │')
         return f" {iface_buffer}"
 
 def gpu() -> str:
