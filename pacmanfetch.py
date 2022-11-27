@@ -10,7 +10,7 @@
 # Pacman_Fetch
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = "v0.4.9"
+__version__ = "v0.5.0"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -38,6 +38,8 @@ H = 12
 # -------------------------------------------------------------------
 D = 0
 
+# Main Banner
+# -------------------------------------------------------------------
 MAIN_BANNER = """[blink]┌───────────────────┐
            │   Pacmanfetch   │
            └───────────────────┘[/blink]"""
@@ -256,7 +258,11 @@ def network() -> str:
         if interface_name.startswith(('w', 'e', 'u', 't')):
             for address in interface_addresses:
                 if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
-                    iface_addrs.append(f"{interface_name}   {address.address} │")
+                    if interface_name.startswith(('t')):
+                        iface_addrs.append(f"VPN is Connected │")
+                    else:
+                        iface_addrs.append(f"{interface_name}   {address.address} │")
+                        
 
     if not iface_addrs:
         return ' Check your   Connections'
