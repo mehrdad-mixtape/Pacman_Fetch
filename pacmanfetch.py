@@ -10,7 +10,7 @@
 # Pacman_Fetch
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = "v0.5.0"
+__version__ = "v0.5.1"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -41,7 +41,7 @@ D = 0
 # Main Banner
 # -------------------------------------------------------------------
 MAIN_BANNER = """[blink]┌───────────────────┐
-           │   Pacmanfetch   │
+           │   [italic]Pacmanfetch[/italic]   │
            └───────────────────┘[/blink]"""
 
 # Color list
@@ -414,7 +414,7 @@ def main() -> None:
     ]
 
     console.print(f"""
-        {node()}
+        [italic]{node()}[/italic]
         {'─' * D}────────""")
     for color in system_info_colors:
         try:
@@ -423,7 +423,7 @@ def main() -> None:
         except IndexError: break
         else:
             for char in title: # Type titles with color
-                console.print(f"[{color}]{char}[/{color}]", end='')
+                console.print(f"[italic][{color}]{char}[/{color}][/italic]", end='')
                 sleep(delay / 1000)
             for char in details: # Type details without color
                 console.print(f"{char}", end='')
