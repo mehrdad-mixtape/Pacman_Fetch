@@ -10,7 +10,7 @@
 # Pacman_Fetch
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = "v0.5.2"
+__version__ = "v0.5.3"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -253,23 +253,25 @@ def ping() -> str:
         return f" 999ms   8.8.8.8"
 
 def network() -> str:
-    if_addrs = psutil.net_if_addrs()
-    for interface_name, interface_addresses in if_addrs.items():
-        if interface_name.startswith(('w', 'e', 'u', 't')):
-            for address in interface_addresses:
-                if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
-                    if interface_name.startswith(('t')):
-                        iface_addrs.append(f"VPN is Connected │")
-                    else:
-                        iface_addrs.append(f"{interface_name}   {address.address} │")
-                        
-
-    if not iface_addrs:
-        return ' Check your   Connections'
+    try:
+        if_addrs = psutil.net_if_addrs()
+        for interface_name, interface_addresses in if_addrs.items():
+            if interface_name.startswith(('w', 'e', 'u', 't')):
+                for address in interface_addresses:
+                    if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
+                        if interface_name.startswith(('t')):
+                            iface_addrs.append(f"VPN is Connected │")
+                        else:
+                            iface_addrs.append(f"{interface_name}   {address.address} │")
+    except PermissionError:
+        return ' No Permission   For Addresses'
     else:
-        iface_buffer = "{} " * len(iface_addrs)
-        iface_buffer = iface_buffer.format(*iface_addrs).strip(' │')
-        return f" {iface_buffer}"
+        if not iface_addrs:
+            return ' Check your   Connections'
+        else:
+            iface_buffer = "{} " * len(iface_addrs)
+            iface_buffer = iface_buffer.format(*iface_addrs).strip(' │')
+            return f" {iface_buffer}"
 
 def gpu() -> str:
     gpu_info = ''
