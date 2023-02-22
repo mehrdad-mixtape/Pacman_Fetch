@@ -10,7 +10,7 @@
 # Pacman_Fetch
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = "v0.5.3"
+__version__ = "v0.5.5"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -58,7 +58,7 @@ D = 0
 MAIN_BANNER = """[blink]┌───────────────────┐
            │   [italic]Pacmanfetch[/italic]   │
            └───────────────────┘[/blink]"""
-UNSUPPORTED_BANNER = UNSUPPORTED_BANNER
+UNSUPPORTED_BANNER = ' Platform unsupported'
 
 # Color list
 # -------------------------------------------------------------------
