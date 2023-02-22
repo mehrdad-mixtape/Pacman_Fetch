@@ -32,8 +32,8 @@ def exception_handler(*exceptions) -> Callable:
         def __wrapper__(*args, **kwargs) -> Any:
             try:
                 results = func(*args, **kwargs)
-            except exceptions as err:
-                return 'Unsupported!'
+            except exceptions:
+                return UNSUPPORTED_BANNER
             else:
                 return results
         return __wrapper__
@@ -53,11 +53,12 @@ H = 12
 # -------------------------------------------------------------------
 D = 0
 
-# Main Banner
+# Banners
 # -------------------------------------------------------------------
 MAIN_BANNER = """[blink]┌───────────────────┐
            │   [italic]Pacmanfetch[/italic]   │
            └───────────────────┘[/blink]"""
+UNSUPPORTED_BANNER = UNSUPPORTED_BANNER
 
 # Color list
 # -------------------------------------------------------------------
@@ -157,7 +158,7 @@ NODE = "[white]  {}$ [/white][yellow2] {}[/yellow2][red]@[/red][cyan]{}[/c
 # -------------------------------------------------------------------
 iface_addrs: List[str] = []
 
-# Ghost: Width=29, Height=12
+# Pacman: Width=29, Height=12
 # -------------------------------------------------------------------
 pacman = """
 ▒▒▒▒▒▒▒██████████████▒▒▒▒▒▒▒▒
@@ -220,7 +221,7 @@ def cpu() -> str:
         cpu_info = platform.processor().strip()
     
     else:
-        cpu_info = ' Platform unsupported'
+        cpu_info = UNSUPPORTED_BANNER
 
     return f" {cpu_info} {psutil.cpu_count()} Cores"
 
@@ -349,7 +350,7 @@ def gpu() -> str:
         ... # wmic path Win32_VideoController get caption
     
     else:
-        gpu_info = ' Platform unsupported'
+        gpu_info = UNSUPPORTED_BANNER
 
     return f" {gpu_info}"
 
