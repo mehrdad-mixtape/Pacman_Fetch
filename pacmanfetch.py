@@ -16,13 +16,28 @@ __version__ = "v0.5.3"
 For Better Experience Install icon-in-terminal:
 Github repo: https://github.com/sebastiencs/icons-in-terminal """
 
-from typing import List, Dict, Generator
+from typing import List, Dict, Generator, Callable, Any
 from time import sleep, time
 from rich.console import Console
+from rich import pretty, traceback
+pretty.install()
+traceback.install()
 from random import shuffle, choice
 from argparse import ArgumentParser
 import os, platform, subprocess, \
     re, sys, distro, psutil
+
+def exception_handler(*exceptions) -> Callable:
+    def __decorator__(func: Callable) -> Callable:
+        def __wrapper__(*args, **kwargs) -> Any:
+            try:
+                results = func(*args, **kwargs)
+            except exceptions as err:
+                return 'Unsupported!'
+            else:
+                return results
+        return __wrapper__
+    return __decorator__
 
 # Blocks
 # -------------------------------------------------------------------
@@ -184,7 +199,7 @@ def clear() -> None:
     else: pass
 
 def cpu() -> str:
-    cpu_info = " Platform unsupported!"
+    cpu_info = ''
     if platform.system() == 'Linux':
         cmd = 'cat /proc/cpuinfo'
         all_info = subprocess.check_output(cmd, shell=True).decode().strip()
@@ -203,9 +218,13 @@ def cpu() -> str:
 
     elif platform.system() == 'Windows':
         cpu_info = platform.processor().strip()
+    
+    else:
+        cpu_info = ' Platform unsupported'
 
     return f" {cpu_info} {psutil.cpu_count()} Cores"
 
+@exception_handler(RuntimeWarning, PermissionError, OSError)
 def ram() -> str:
     mem = psutil.virtual_memory()
     usage = round(mem.percent)
@@ -213,6 +232,7 @@ def ram() -> str:
     total = round(mem.total / (1024 ** 3), 1)
     return f" {used} GB  {total} GB usage: {usage}%"
 
+@exception_handler(RuntimeWarning, PermissionError, OSError)
 def swap() -> str:
     swap = psutil.swap_memory()
     usage = round(swap.percent)
@@ -220,6 +240,7 @@ def swap() -> str:
     total = round(swap.total / (1024 ** 3), 1)
     return f" {used} GB  {total} GB usage: {usage}%"
 
+@exception_handler(RuntimeWarning, PermissionError, OSError)
 def disk() -> str:
     home = psutil.disk_usage('/home')
     home_total = round(home.total / (1024 ** 3), 1)
@@ -252,26 +273,23 @@ def ping() -> str:
     except Exception:
         return f" 999ms   8.8.8.8"
 
+@exception_handler(RuntimeWarning, PermissionError, OSError)
 def network() -> str:
-    try:
-        if_addrs = psutil.net_if_addrs()
-        for interface_name, interface_addresses in if_addrs.items():
-            if interface_name.startswith(('w', 'e', 'u', 't')):
-                for address in interface_addresses:
-                    if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
-                        if interface_name.startswith(('t')):
-                            iface_addrs.append(f"VPN is Connected │")
-                        else:
-                            iface_addrs.append(f"{interface_name}   {address.address} │")
-    except PermissionError:
-        return ' No Permission   For Addresses'
+    if_addrs = psutil.net_if_addrs()
+    for interface_name, interface_addresses in if_addrs.items():
+        if interface_name.startswith(('w', 'e', 'u', 't')):
+            for address in interface_addresses:
+                if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
+                    if interface_name.startswith(('t')):
+                        iface_addrs.append(f"VPN is Connected │")
+                    else:
+                        iface_addrs.append(f"{interface_name}   {address.address} │")
+    if not iface_addrs:
+        return ' Check your   Connections'
     else:
-        if not iface_addrs:
-            return ' Check your   Connections'
-        else:
-            iface_buffer = "{} " * len(iface_addrs)
-            iface_buffer = iface_buffer.format(*iface_addrs).strip(' │')
-            return f" {iface_buffer}"
+        iface_buffer = "{} " * len(iface_addrs)
+        iface_buffer = iface_buffer.format(*iface_addrs).strip(' │')
+        return f" {iface_buffer}"
 
 def gpu() -> str:
     gpu_info = ''
@@ -318,20 +336,20 @@ def gpu() -> str:
                 gpu_info += gpu
         
         if not gpu_info:
-            gpu_info = 'Can\'t find Gpu'
+            gpu_info = 'Platform unsupported'
         else:
             gpu_info = gpu_info.strip('│ ')
 
     elif platform.system() == 'Darwin':
-        gpu_info = 'Can\'t find Gpu and Not implemented'
+        gpu_info = 'Not implemented'
         ... # system_profiler SPDisplaysDataType
 
     elif platform.system() == 'Windows':
-        gpu_info = 'Can\'t find Gpu and Not implemented'
+        gpu_info = 'Not implemented'
         ... # wmic path Win32_VideoController get caption
     
     else:
-        gpu_info = 'Platform unsupported!'
+        gpu_info = ' Platform unsupported'
 
     return f" {gpu_info}"
 
@@ -422,7 +440,8 @@ def main() -> None:
         try:
             details = system_info_details.pop(0)
             title = system_info_title.pop(0)
-        except IndexError: break
+        except IndexError:
+            break
         else:
             for char in title: # Type titles with color
                 console.print(f"[italic][{color}]{char}[/{color}][/italic]", end='')
