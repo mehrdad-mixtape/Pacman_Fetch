@@ -25,7 +25,7 @@ traceback.install()
 from random import shuffle, choice
 from argparse import ArgumentParser
 import os, platform, subprocess, \
-    re, sys, distro, psutil
+    re, sys, distro, psutil, asyncio as aio
 
 def exception_handler(*exceptions) -> Callable:
     def __decorator__(func: Callable) -> Callable:
@@ -253,7 +253,7 @@ def disk() -> str:
     
     return f" Root({root_total} GB) free: {root_free} GB │ Home({home_total} GB) free: {home_free} GB"
 
-def ping() -> str:
+async def ping() -> str:
     cmd = 'ping {} 1 8.8.8.8'
     if platform.system() == "Windows":
         cmd = cmd.format('-n')
@@ -261,18 +261,14 @@ def ping() -> str:
         cmd = cmd.format('-c')
     try:
         if not iface_addrs:
-            return f" 999ms   8.8.8.8"
+            return ' 999ms   8.8.8.8'
         else:
-            ping_proc = subprocess.Popen(
-                cmd,
-                shell=True,
-                stdout=subprocess.PIPE
-            )
-            stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
-            time = re.findall(r"time=.*ms", stdout)[0].replace('time=', '')
-            return f" {time}   8.8.8.8"
+            with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE) as ping_proc:
+                stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
+                time = re.findall(r"time=.*ms", stdout)[0].replace('time=', '')
+                return f" {time}   8.8.8.8"
     except Exception:
-        return f" 999ms   8.8.8.8"
+        return ' 999ms   8.8.8.8'
 
 @exception_handler(RuntimeWarning, PermissionError, OSError)
 def network() -> str:
@@ -384,7 +380,7 @@ def uptime() -> str:
     seconds = system_up % 60
     return f" {hours}h {minutes}m {seconds}s"
 
-def main() -> None:
+async def main() -> None:
     clear()
     delay = 0
     console = Console()
@@ -408,6 +404,28 @@ def main() -> None:
         """)
         sys.exit()
 
+    # Results:
+    oper_stat = operate()
+    kern_stat = kernel()
+    cpu_stat = cpu()
+    gpu_stat = gpu()
+    ram_stat = ram()
+    swap_stat = swap()
+    disk_stat = disk()
+    net_stat = network()
+    uptime_stat = uptime()
+    # Prevent from long waiting for ping
+    done, pending = await aio.wait([aio.create_task(ping())], timeout=0.5)
+    ping_stat = ' 999ms   8.8.8.8'
+    for task in done: ping_stat = task.result()
+
+    system_info_details: List[str] = [
+        oper_stat, kern_stat, cpu_stat,
+        gpu_stat, ram_stat, swap_stat,
+        disk_stat, net_stat, ping_stat,
+        uptime_stat,
+    ]
+
     # Draw pacman & ghosts
     # -------------------------------------------------------------------
     ghost_buffer = "{}" * max_ghost 
@@ -428,12 +446,6 @@ def main() -> None:
 
     # Draw system info
     # -------------------------------------------------------------------
-    system_info_details: List[str] = [
-        operate(), kernel(), cpu(),
-        gpu(), ram(), swap(), disk(),
-        network(), ping(), uptime()
-    ]
-
     console.print(f"""
         [italic]{node()}[/italic]
         {'─' * D}────────""")
@@ -457,6 +469,6 @@ def main() -> None:
 
 if __name__ == '__main__':
     try:
-        main()
+        aio.run(main())
     except KeyboardInterrupt:
         sys.exit()
