@@ -10,7 +10,7 @@
 # Pacman_Fetch
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = "v0.5.5"
+__version__ = "v0.5.5-[red]beta[/red]"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
