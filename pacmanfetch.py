@@ -99,7 +99,7 @@ COLOR_BANNER = """{}{}{}{}{}{}{}
 OS_name = distro.id()
 OS_logos = {
     # It is not compatible for all os, because of icon-fonts.
-    'nix': ' ',
+    'nixos': ' ',
     'ubuntu': ' ',
     'debian': ' ',
     'raspbian': ' ',
