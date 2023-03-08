@@ -9,8 +9,12 @@
 # Python Version 3.6 or higher
 # Pacman_Fetch
 
+ALPHA = "[purple]alpha[/purple]"
+BETA = "[red]beta[/red]"
+STABLE = "[green]stable[/green]"
+
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = "v0.5.5"
+__version__ = f"v0.5.6-{STABLE}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
