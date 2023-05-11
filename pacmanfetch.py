@@ -32,6 +32,53 @@ from random import shuffle, choice
 import os, platform, subprocess, \
     re, sys, distro, psutil
 
+
+# Variables
+# ---------------------------------------------------------------------
+delay = 0
+INFO = '[green]Info[/green]'
+DEBUG = '[purple]Debug[/purple]'
+WARNING = '[dark_orange]Warning[/dark_orange]'
+ERROR = '[red]Error[/red]'
+
+# Banners
+# -------------------------------------------------------------------
+MAIN_BANNER = """[blink]┌───────────────────┐
+           │   [italic]Pacmanfetch[/italic]   │
+           └───────────────────┘[/blink]"""
+UNSUPPORTED_BANNER = f" [*] {ERROR}. Platform unsupported"
+
+HELP = f"""
+Intro:
+    Fetch your system!
+    ---===❰ [blink]  [italic][gold1]Pacmanfetch[/gold1][/italic]   [/blink] ❱===---
+
+Helps:
+    [bold][red]-d --delay[/red][/bold]: Get delay to show you typewriter style
+        $ pacmanfetch -d 10
+    [bold][green]-v --version[/green][/bold]: Show you version
+        $ pacmanfetch -v
+    [bold][orange4]-h --help[/orange4][/bold]: Show help
+        $ pacmanfetch -h
+"""
+
+# Functions
+# ---------------------------------------------------------------------
+pprint = lambda *args, **kwargs: Console().print(*args, **kwargs)
+
+def clear() -> None:
+    if platform.system() in "Linux Darwin":
+        subprocess.run(['clear'])
+    elif platform.system() in "Windows":
+        subprocess.run(['cls'])
+    else: pass
+
+def goodbye(expression: bool, cause: str='Unknown', silent: bool=False):
+    if expression:
+        if not silent: pprint(HELP)
+        pprint(f"[*] {ERROR}. {cause}")
+        sys.exit()
+
 # Decorators
 # --------------------------------------------------------------------
 def exception_handler(*exceptions, cause: str=UNSUPPORTED_BANNER, do_this=sys.exit) -> Callable[[Any], Any]:
@@ -333,7 +380,7 @@ def disk() -> str:
     
     return f" Root({root_total} GB) free: {root_free} GB │ Home({home_total} GB) free: {home_free} GB"
 
-async def ping() -> str:
+def ping() -> str:
     cmd = 'ping {} 1 8.8.8.8'
     if platform.system() == "Windows":
         cmd = cmd.format('-n')
@@ -460,6 +507,8 @@ def uptime() -> str:
     seconds = system_up % 60
     return f" {hours}h {minutes}m {seconds}s"
 
+@exception_handler(IndexError, cause=f"Not enough arguments")
+@exception_handler(KeyboardInterrupt, cause=f"Ctrl+C", do_this=sys.exit)
 def main() -> None:
     clear()
 
@@ -468,20 +517,7 @@ def main() -> None:
 
     # Argument parsing
     # -------------------------------------------------------------------
-    parser = ArgumentParser()
-    parser.add_argument('-v', '--version', help="show version", action='store_false', required=False)
-    parser.add_argument('-d', '--delay', help="typewriter style show itself if you set delay <ms>", type=int, required=False)
-    args = parser.parse_args()
-    
-    if args.delay:
-        delay = args.delay
-    elif not args.version:
-        console.print(f"""
-           {choice(colors).format(MAIN_BANNER)}
-           Version: {__version__}
-           Source: {__repo__}
-        """)
-        sys.exit()
+    for _ in option.manage(): ...
 
     # Draw pacman & ghosts
     # -------------------------------------------------------------------
@@ -509,7 +545,7 @@ def main() -> None:
         network(), ping(), uptime()
     ]
 
-    console.print(f"""
+    pprint(f"""
         [italic]{node()}[/italic]
         {'─' * D}────────""")
     for color in system_info_colors:
@@ -531,7 +567,4 @@ def main() -> None:
            {choice(colors).format(MAIN_BANNER)}""")
 
 if __name__ == '__main__':
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.exit()
+    main()
