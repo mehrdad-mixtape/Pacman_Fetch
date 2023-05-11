@@ -1,4 +1,4 @@
-#!/bin/python3.8
+#!/bin/python3
 # -*- coding: utf8 -*-
 
 # MIT License
@@ -14,34 +14,184 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.5.6-{STABLE}"
+__version__ = f"v0.6.0-{BETA}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
 Github repo: https://github.com/sebastiencs/icons-in-terminal """
 
-from typing import List, Dict, Generator, Callable, Any
+from typing import Tuple, List, Dict, \
+    Generator, Callable, Any
 from time import sleep, time
 from rich.console import Console
+from rich.table import Table
 from rich import pretty, traceback
 pretty.install()
 traceback.install()
 from random import shuffle, choice
-from argparse import ArgumentParser
 import os, platform, subprocess, \
     re, sys, distro, psutil
 
-def exception_handler(*exceptions) -> Callable:
-    def __decorator__(func: Callable) -> Callable:
+
+# Variables
+# ---------------------------------------------------------------------
+delay = 0
+INFO = '[green]Info[/green]'
+DEBUG = '[purple]Debug[/purple]'
+WARNING = '[dark_orange]Warning[/dark_orange]'
+ERROR = '[red]Error[/red]'
+
+# Banners
+# -------------------------------------------------------------------
+MAIN_BANNER = """[blink]┌───────────────────┐
+           │   [italic]Pacmanfetch[/italic]   │
+           └───────────────────┘[/blink]"""
+UNSUPPORTED_BANNER = f" [*] {ERROR}. Platform unsupported"
+
+HELP = f"""
+Intro:
+    Fetch your system!
+    ---===❰ [blink]  [italic][gold1]Pacmanfetch[/gold1][/italic]   [/blink] ❱===---
+
+Helps:
+    [bold][red]-d --delay[/red][/bold]: Get delay to show you typewriter style
+        $ pacmanfetch -d 10
+    [bold][green]-v --version[/green][/bold]: Show you version
+        $ pacmanfetch -v
+    [bold][orange4]-h --help[/orange4][/bold]: Show help
+        $ pacmanfetch -h
+"""
+
+# Functions
+# ---------------------------------------------------------------------
+pprint = lambda *args, **kwargs: Console().print(*args, **kwargs)
+
+def clear() -> None:
+    if platform.system() in "Linux Darwin":
+        subprocess.run(['clear'])
+    elif platform.system() in "Windows":
+        subprocess.run(['cls'])
+    else: pass
+
+def goodbye(expression: bool, cause: str='Unknown', silent: bool=False):
+    if expression:
+        if not silent: pprint(HELP)
+        pprint(f"[*] {ERROR}. {cause}")
+        sys.exit()
+
+# Decorators
+# --------------------------------------------------------------------
+def exception_handler(*exceptions, cause: str=UNSUPPORTED_BANNER, do_this=sys.exit) -> Callable[[Any], Any]:
+    def __decorator__(func: Callable) -> Callable[[Any], Any]:
         def __wrapper__(*args, **kwargs) -> Any:
             try:
                 results = func(*args, **kwargs)
             except exceptions:
-                return UNSUPPORTED_BANNER
+                clear()
+                pprint("---===❰ [blink]  [italic][gold1]Pacmanfetch[/gold1][/italic]   [/blink] ❱===---")
+                pprint(f"[*] {ERROR}. {cause}")
+                do_this()
             else:
                 return results
         return __wrapper__
     return __decorator__
+
+# Classes
+# --------------------------------------------------------------------
+class Options:
+    __slots__ = "__option_list", "__option_method"
+    def __init__(self):
+        self.__option_list: List[str] = []
+        self.__option_method: Dict[str, Tuple[Callable, bool, int]] = {}
+
+    def __str__(self):
+        table = Table()
+        table.add_column('Switches')
+        table.add_column('Methods')
+        for switch, method in self.option_method.items():
+            table.add_row(switch, method.__name__)
+        pprint(table)
+        return '\r'
+
+    def __call__(
+            self, *switches: str,
+            has_input: bool=False,
+            type_of_input: type=None
+        ):
+        """
+            switches: start with - or --.
+            has_input: maybe the switches include the argument after them.
+            type_of_input: hint the type_of_input that become after switch
+        """
+        self.__option_list.extend(switches)
+        def __decorator__(func: Callable) -> Callable[[None], None]:
+            for sw in switches:
+                self[sw] = (func, has_input, type_of_input)
+        return __decorator__
+
+    def __setitem__(self, attr, value) -> None:
+        self.__option_method[attr] = value
+
+    def __getitem__(self, attr) -> Any:
+        return self.__option_method[attr]
+
+    def manage(self) -> Generator[Any, None, None]:
+        for i, sw in enumerate(sys.argv): # sys.argv converted to set to remove the duplicate switches
+            if not sw.startswith(('-', '--')): continue # valid switches can start with - --
+            func, has_input, type_of_input= self.option_method[sw] # func is __wrapper__ in __call__ that defined in Options class
+            # if switch has input, I should pass the location of input to func, if it hasn't, it will be handle in __wrapper__ with has_input
+            # eval(f"{func}({i + 1})")
+            if not has_input:
+                yield func()
+            else:
+                arg_input = sys.argv[i + 1].__str__()
+                goodbye(
+                    type_of_input is None,
+                    cause=f"Get type-of-arguments=({arg_input}) after {sw}",
+                    silent=True
+                )
+                try:
+                    arg_input = type_of_input(arg_input)
+                except ValueError:
+                    goodbye(
+                        True,
+                        cause=f"Gave bad-argument=({arg_input}) after {sw}",
+                        silent=True
+                    )
+                yield func(arg_input)
+
+    @property
+    def option_list(self) -> List[str]:
+        return self.__option_list
+
+    @property
+    def option_method(self) -> Dict[str, str]:
+        return self.__option_method
+
+# Options
+# -------------------------------------------------------------------
+option = Options()
+
+@option('-v', '--version')
+def do_you_wanna_see_version() -> None:
+    pprint(
+    f"""
+    ---===❰ [blink]  [italic][gold1]Pacmanfetch[/gold1][/italic]   [/blink] ❱===---
+    Version: {__version__}
+    Source: {__repo__}
+    """
+    )
+    sys.exit()
+
+@option('-d', '--delay', has_input=True, type_of_input=int)
+def do_you_wanna_typewriter_style(speed: int) -> None:
+    global delay
+    delay = speed
+
+@option('-h', '--help')
+def do_you_wanna_help() -> None:
+    pprint(HELP)
+    sys.exit()
 
 # Blocks
 # -------------------------------------------------------------------
@@ -56,13 +206,6 @@ H = 12
 # length of separator
 # -------------------------------------------------------------------
 D = 0
-
-# Banners
-# -------------------------------------------------------------------
-MAIN_BANNER = """[blink]┌───────────────────┐
-           │   [italic]Pacmanfetch[/italic]   │
-           └───────────────────┘[/blink]"""
-UNSUPPORTED_BANNER = ' Platform unsupported'
 
 # Color list
 # -------------------------------------------------------------------
@@ -103,26 +246,13 @@ COLOR_BANNER = """{}{}{}{}{}{}{}
 OS_name = distro.id()
 OS_logos = {
     # It is not compatible for all os, because of icon-fonts.
-    'nixos': ' ',
-    'ubuntu': ' ',
-    'debian': ' ',
-    'raspbian': ' ',
-    'elementary': ' ',
-    'mint': ' ',
-    'centos': ' ',
-    'fedora': ' ',
-    'redhat': ' ',
-    'arch': ' ',
-    'manjaro': ' ',
-    'suse': ' ',
-    'slackware': ' ',
-    'alpine': '',
-    'bsd': ' ',
-    'gentoo': ' ',
-    'darwin': ' ',
-    'macos': ' ',
-    'mac': ' ',
-    'windows': ' ',
+    'nixos': ' ', 'ubuntu': ' ', 'debian': ' ',
+    'raspbian': ' ', 'elementary': ' ', 'mint': ' ',
+    'centos': ' ', 'fedora': ' ', 'redhat': ' ',
+    'arch': ' ', 'manjaro': ' ', 'suse': ' ',
+    'slackware': ' ', 'alpine': ' ', 'bsd': ' ',
+    'gentoo': ' ', 'darwin': ' ', 'macos': ' ',
+    'mac': ' ', 'windows': ' ',
 }
 
 # Random Block color list
@@ -144,16 +274,16 @@ system_info_colors = [
 ]
 
 system_info_title = [
-    f"        {OS_logos.get(OS_name, ' ')} OS:",
-    '          Kernel:',
-    '          Cpu:',
-    '          Gpu:',
-    '          Ram:',
-    '          Swap:',
-    '          Disk:',
-    '          Network:',
-    '          Ping:',
-    '          Uptime:',
+    f"       │ {OS_logos.get(OS_name, ' ')} OS:",
+    '       │   Kernel:',
+    '       │   Cpu:',
+    '       │   Gpu:',
+    '       │   Ram:',
+    '       │   Swap:',
+    '       │   Disk:',
+    '       │   Network:',
+    '       │   Ping:',
+    '       │   Uptime:',
 ]
 
 NODE = "[white]  {}$ [/white][yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan]"
@@ -195,13 +325,6 @@ ghost = """
 ▒████▒▒████▒▒▒▒▒▒████▒▒████▒▒
 ▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒
 """
-
-def clear() -> None:
-    if platform.system() in "Linux Darwin":
-        subprocess.run(['clear'])
-    elif platform.system() in "Windows":
-        subprocess.run(['cls'])
-    else: pass
 
 def cpu() -> str:
     cpu_info = ''
@@ -388,35 +511,23 @@ def uptime() -> str:
     seconds = system_up % 60
     return f" {hours}h {minutes}m {seconds}s"
 
+@exception_handler(IndexError, cause=f"Not enough arguments")
+@exception_handler(KeyboardInterrupt, cause=f"Ctrl+C", do_this=sys.exit)
 def main() -> None:
     clear()
-    delay = 0
-    console = Console()
+
     max_width = os.get_terminal_size().columns // (29) # 29 = width of ghost
     max_ghost = limit if max_width >= limit else max_width # How many ghost can place on terminal
 
     # Argument parsing
     # -------------------------------------------------------------------
-    parser = ArgumentParser()
-    parser.add_argument('-v', '--version', help="show version", action='store_false', required=False)
-    parser.add_argument('-d', '--delay', help="typewriter style show itself if you set delay <ms>", type=int, required=False)
-    args = parser.parse_args()
-    
-    if args.delay:
-        delay = args.delay
-    elif not args.version:
-        console.print(f"""
-           {choice(colors).format(MAIN_BANNER)}
-           Version: {__version__}
-           Source: {__repo__}
-        """)
-        sys.exit()
+    for _ in option.manage(): ...
 
     # Draw pacman & ghosts
     # -------------------------------------------------------------------
     ghost_buffer = "{}" * max_ghost 
     for n in range(H + 1):
-        console.print(ghost_buffer.format(
+        pprint(ghost_buffer.format(
             pacman.split('\n')[n].replace('▒', ' '),
                 *(
                     ghost.split('\n')[n] \
@@ -438,7 +549,7 @@ def main() -> None:
         network(), ping(), uptime()
     ]
 
-    console.print(f"""
+    pprint(f"""
         [italic]{node()}[/italic]
         {'─' * D}────────""")
     for color in system_info_colors:
@@ -449,18 +560,15 @@ def main() -> None:
             break
         else:
             for char in title: # Type titles with color
-                console.print(f"[italic][{color}]{char}[/{color}][/italic]", end='')
+                pprint(f"[italic][{color}]{char}[/{color}][/italic]", end='')
                 sleep(delay / 1000)
             for char in details: # Type details without color
-                console.print(f"{char}", end='')
+                pprint(f"{char}", end='')
                 sleep(delay / 1000)
             print()
-    console.print(f"""        {'─' * D}────────
+    pprint(f"""        {'─' * D}────────
           {COLOR_BANNER.format(*[color.format(F * 3) for color in colors])}
            {choice(colors).format(MAIN_BANNER)}""")
 
 if __name__ == '__main__':
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.exit()
+    main()
