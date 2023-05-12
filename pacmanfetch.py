@@ -14,7 +14,7 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.6.0-{BETA}"
+__version__ = f"v0.6.2-{BETA}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -81,20 +81,22 @@ def goodbye(expression: bool, cause: str='Unknown', silent: bool=False):
 
 # Decorators
 # --------------------------------------------------------------------
-def exception_handler(*exceptions, cause: str=UNSUPPORTED_BANNER, do_this=sys.exit) -> Callable[[Any], Any]:
+def exception_handler(*exceptions, cause: str='', do_this: Callable=sys.exit) -> Callable[[Any], Any]:
     def __decorator__(func: Callable) -> Callable[[Any], Any]:
         def __wrapper__(*args, **kwargs) -> Any:
             try:
                 results = func(*args, **kwargs)
-            except exceptions:
-                clear()
-                pprint("---===❰ [blink]  [italic][gold1]Pacmanfetch[/gold1][/italic]   [/blink] ❱===---")
-                pprint(f"[*] {ERROR}. {cause}")
+            except exceptions as err:
+                if cause:
+                    pprint(f"\n[*] {ERROR}. {cause}")
+                else:
+                    pprint(f"\n[*] {err}")
                 do_this()
             else:
                 return results
         return __wrapper__
     return __decorator__
+
 
 # Classes
 # --------------------------------------------------------------------
@@ -121,7 +123,7 @@ class Options:
         """
             switches: start with - or --.
             has_input: maybe the switches include the argument after them.
-            type_of_input: hint the type_of_input that become after switch
+            limit_of_args: numbers of arguments after switches and depends on has_input.
         """
         self.__option_list.extend(switches)
         def __decorator__(func: Callable) -> Callable[[None], None]:
@@ -135,30 +137,50 @@ class Options:
     def __getitem__(self, attr) -> Any:
         return self.__option_method[attr]
 
-    def manage(self) -> Generator[Any, None, None]:
+    def parse(self) -> Generator[Any, None, None]:
         for i, sw in enumerate(sys.argv): # sys.argv converted to set to remove the duplicate switches
-            if not sw.startswith(('-', '--')): continue # valid switches can start with - --
-            func, has_input, type_of_input= self.option_method[sw] # func is __wrapper__ in __call__ that defined in Options class
+            # goodbye(sw.startswith(('+', '=', '/', '\\', '$', '#', '>', '<', '@', '!', '`', '~')))
+
+            if not sw.startswith(('-', '--')):
+                continue # valid switches can start with - --            
+            
+            # Handle the complete-switches: Example ==> --help --version --delay
+            if '--' in sw:
+                yield self.__switch_executer(sw, i)
+                continue
+            
+            # Handle the abbreviation-switches: Example ==> -h -v -d
+            # Handle the mixed abbreviation-switches: Example ==> -hvd = -vdh
+            for chr in sw:
+                if chr == '-': continue
+                esw = f"-{chr}" # esw = extracted_switch
+                yield self.__switch_executer(esw, i)
+
+    def __switch_executer(self, switch: str, switch_index: int) -> None:
+        try:
+            func, has_input, type_of_input = self.option_method[switch] # func is __wrapper__ in __call__ that defined in Options class
             # if switch has input, I should pass the location of input to func, if it hasn't, it will be handle in __wrapper__ with has_input
-            # eval(f"{func}({i + 1})")
-            if not has_input:
-                yield func()
-            else:
-                arg_input = sys.argv[i + 1].__str__()
+        except KeyError:
+            goodbye(True, cause=f"Invalid Switch=({switch})")
+        # eval(f"{func}({i + 1})")
+        if not has_input:
+            return func()
+        else:
+            arg_input = sys.argv[switch_index + 1].__str__()
+            goodbye(
+                type_of_input is None,
+                cause=f"Get type-of-arguments=({arg_input}) after {switch}",
+                silent=True
+            )
+            try:
+                arg_input = type_of_input(arg_input)
+            except ValueError:
                 goodbye(
-                    type_of_input is None,
-                    cause=f"Get type-of-arguments=({arg_input}) after {sw}",
+                    True,
+                    cause=f"Gave bad-argument=({arg_input}) after {switch}",
                     silent=True
                 )
-                try:
-                    arg_input = type_of_input(arg_input)
-                except ValueError:
-                    goodbye(
-                        True,
-                        cause=f"Gave bad-argument=({arg_input}) after {sw}",
-                        silent=True
-                    )
-                yield func(arg_input)
+            return func(arg_input)
 
     @property
     def option_list(self) -> List[str]:
@@ -181,7 +203,6 @@ def do_you_wanna_see_version() -> None:
     Source: {__repo__}
     """
     )
-    sys.exit()
 
 @option('-d', '--delay', has_input=True, type_of_input=int)
 def do_you_wanna_typewriter_style(speed: int) -> None:
@@ -191,7 +212,6 @@ def do_you_wanna_typewriter_style(speed: int) -> None:
 @option('-h', '--help')
 def do_you_wanna_help() -> None:
     pprint(HELP)
-    sys.exit()
 
 # Blocks
 # -------------------------------------------------------------------
@@ -517,7 +537,7 @@ def main() -> None:
 
     # Argument parsing
     # -------------------------------------------------------------------
-    for _ in option.manage(): ...
+    for _ in option.parse(): ...
 
     # Draw pacman & ghosts
     # -------------------------------------------------------------------
