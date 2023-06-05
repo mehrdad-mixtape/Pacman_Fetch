@@ -14,7 +14,7 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.6.2-{BETA}"
+__version__ = f"v0.6.4-{BETA}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -36,15 +36,16 @@ import os, platform, subprocess, \
 # Variables
 # ---------------------------------------------------------------------
 delay = 0
+pacman = False
 INFO = '[green]Info[/green]'
-DEBUG = '[purple]Debug[/purple]'
+NOTICE = '[purple]Notice[/purple]'
 WARNING = '[dark_orange]Warning[/dark_orange]'
 ERROR = '[red]Error[/red]'
 
 # Banners
 # -------------------------------------------------------------------
 MAIN_BANNER = """[blink]┌───────────────────┐
-           │   [italic]Pacmanfetch[/italic]   │
+           │   Pacmanfetch   │
            └───────────────────┘[/blink]"""
 UNSUPPORTED_BANNER = f" [*] {ERROR}. Platform unsupported"
 
@@ -56,6 +57,8 @@ Intro:
 Helps:
     [bold][red]-d --delay[/red][/bold]: Get delay to show you typewriter style
         $ pacmanfetch -d 10
+    [bold][cyan]-p --pacman[/cyan][/bold]: Show you big pacman
+        $ pacmanfetch -p
     [bold][green]-v --version[/green][/bold]: Show you version
         $ pacmanfetch -v
     [bold][orange4]-h --help[/orange4][/bold]: Show help
@@ -101,6 +104,7 @@ def exception_handler(*exceptions, cause: str='', do_this: Callable=sys.exit) ->
 # Classes
 # --------------------------------------------------------------------
 class Options:
+
     __slots__ = "__option_list", "__option_method"
     def __init__(self):
         self.__option_list: List[str] = []
@@ -203,15 +207,22 @@ def do_you_wanna_see_version() -> None:
     Source: {__repo__}
     """
     )
+    sys.exit()
 
 @option('-d', '--delay', has_input=True, type_of_input=int)
 def do_you_wanna_typewriter_style(speed: int) -> None:
     global delay
     delay = speed
 
+@option('-p', '--pacman')
+def do_you_wanna_show_pacman() -> None:
+    global pacman
+    pacman = True
+
 @option('-h', '--help')
 def do_you_wanna_help() -> None:
     pprint(HELP)
+    sys.exit()
 
 # Blocks
 # -------------------------------------------------------------------
@@ -294,16 +305,16 @@ system_info_colors = [
 ]
 
 system_info_title = [
-    f"       │ {OS_logos.get(OS_name, ' ')} OS:",
-    '       │   Kernel:',
-    '       │   Cpu:',
-    '       │   Gpu:',
-    '       │   Ram:',
-    '       │   Swap:',
-    '       │   Disk:',
-    '       │   Network:',
-    '       │   Ping:',
-    '       │   Uptime:',
+    f"        {OS_logos.get(OS_name, ' ')} │", # os
+    '          │', # kernel
+    '          │', # cpu
+    '          │', # gpu
+    '          │', # ram
+    '          │', # swap
+    '          │', # disk
+    '          │', # network
+    '          │', # ping
+    '          │', # uptime
 ]
 
 NODE = "[white]  {}$ [/white][yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan]"
@@ -314,7 +325,8 @@ iface_addrs: List[str] = []
 
 # Pacman: Width=29, Height=12
 # -------------------------------------------------------------------
-pacman = """
+MINI_PACMAN = '[yellow]󰮯 [/yellow]  [dark_orange]󰊠 [/dark_orange] [cyan]󰊠 [/cyan] [red]󰊠 [/red] [green]󰊠 [/green]'
+PACMAN = """
 ▒▒▒▒▒▒▒██████████████▒▒▒▒▒▒▒▒
 ▒▒▒▒▒███████████████████▒▒▒▒▒
 ▒▒▒███████████████████████▒▒▒
@@ -331,7 +343,7 @@ pacman = """
 
 # Ghost: Width=29, Height=12
 # -------------------------------------------------------------------
-ghost = """
+GHOST = """
 ▒▒▒▒▒▒▒██████████████▒▒▒▒▒▒▒▒
 ▒▒▒▒▒██████████████████▒▒▒▒▒▒
 ▒▒▒@@@@@@█████@@@@@@█████▒▒▒▒
@@ -541,21 +553,22 @@ def main() -> None:
 
     # Draw pacman & ghosts
     # -------------------------------------------------------------------
-    ghost_buffer = "{}" * max_ghost 
-    for n in range(H + 1):
-        pprint(ghost_buffer.format(
-            pacman.split('\n')[n].replace('▒', ' '),
-                *(
-                    ghost.split('\n')[n] \
-                        .replace('▒', ' ') \
-                        .replace(F, block_colors[i]) \
-                        .replace('@', BW) \
-                        .replace('#', BK) \
-                        for i in range(max_ghost - 1)
-                ),
+    if pacman:
+        ghost_buffer = "{}" * max_ghost 
+        for n in range(H + 1):
+            pprint(ghost_buffer.format(
+                PACMAN.split('\n')[n].replace('▒', ' '),
+                    *(
+                        GHOST.split('\n')[n] \
+                            .replace('▒', ' ') \
+                            .replace(F, block_colors[i]) \
+                            .replace('@', BW) \
+                            .replace('#', BK) \
+                            for i in range(max_ghost - 1)
+                    ),
+                )
             )
-        )
-        sleep(delay / 1000)
+            sleep(delay / 1000)
 
     # Draw system info
     # -------------------------------------------------------------------
@@ -566,8 +579,9 @@ def main() -> None:
     ]
 
     pprint(f"""
-        [italic]{node()}[/italic]
-        {'─' * D}────────""")
+        {node()}
+        {'─' * (int(D // 2) - 4)} {MINI_PACMAN}{'─' * (int(D // 2) - 4)}""")
+
     for color in system_info_colors:
         try:
             details = system_info_details.pop(0)
@@ -576,13 +590,15 @@ def main() -> None:
             break
         else:
             for char in title: # Type titles with color
-                pprint(f"[italic][{color}]{char}[/{color}][/italic]", end='')
+                pprint(f"[{color}]{char}[/{color}]", end='')
                 sleep(delay / 1000)
             for char in details: # Type details without color
                 pprint(f"{char}", end='')
                 sleep(delay / 1000)
             print()
-    pprint(f"""        {'─' * D}────────
+            '''─────────'''
+    pprint(f"""        {'─' * (int(D // 2) - 4)} {MINI_PACMAN}{'─' * (int(D // 2) - 4)}
+
           {COLOR_BANNER.format(*[color.format(F * 3) for color in colors])}
            {choice(colors).format(MAIN_BANNER)}""")
 
