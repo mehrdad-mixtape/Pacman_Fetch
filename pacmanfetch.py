@@ -29,8 +29,7 @@ from rich import pretty, traceback
 pretty.install()
 traceback.install()
 from random import shuffle, choice
-import os, platform, subprocess, \
-    re, sys, distro, psutil
+import os, subprocess, re, sys, psutil
 
 
 # Variables
@@ -47,7 +46,6 @@ ERROR = '[red]Error[/red]'
 MAIN_BANNER = """[blink]┌───────────────────┐
            │   Pacmanfetch   │
            └───────────────────┘[/blink]"""
-UNSUPPORTED_BANNER = f" [*] {ERROR}. Platform unsupported"
 
 HELP = f"""
 Intro:
@@ -70,16 +68,12 @@ Helps:
 pprint = lambda *args, **kwargs: Console().print(*args, **kwargs)
 
 def clear() -> None:
-    if platform.system() in "Linux Darwin":
-        subprocess.run(['clear'])
-    elif platform.system() in "Windows":
-        subprocess.run(['cls'])
-    else: pass
+    os.system('clear')
 
 def goodbye(expression: bool, cause: str='Unknown', silent: bool=False):
     if expression:
         if not silent: pprint(HELP)
-        pprint(f"[*] {ERROR}. {cause}")
+        pprint(f"[{ERROR}]. {cause}")
         sys.exit()
 
 # Decorators
@@ -91,9 +85,9 @@ def exception_handler(*exceptions, cause: str='', do_this: Callable=sys.exit) ->
                 results = func(*args, **kwargs)
             except exceptions as err:
                 if cause:
-                    pprint(f"\n[*] {ERROR}. {cause}")
+                    pprint(f"\n[{ERROR}]. {cause}")
                 else:
-                    pprint(f"\n[*] {err}")
+                    pprint(f"\n[{ERROR}]. {err}")
                 do_this()
             else:
                 return results
@@ -274,7 +268,9 @@ COLOR_BANNER = """{}{}{}{}{}{}{}
 
 # OS logos
 # -------------------------------------------------------------------
-OS_name = distro.id()
+# OS_name = distro.id()
+OS_name = os.uname()[3].split()[0].split('-')[1].lower()
+OS_version = os.uname()[3].split()[0].split('-')[0].split('~')[1]
 OS_logos = {
     # It is not compatible for all os, because of icon-fonts.
     'nixos': ' ', 'ubuntu': ' ', 'debian': ' ',
@@ -282,8 +278,7 @@ OS_logos = {
     'centos': ' ', 'fedora': ' ', 'redhat': ' ',
     'arch': ' ', 'manjaro': ' ', 'suse': ' ',
     'slackware': ' ', 'alpine': ' ', 'bsd': ' ',
-    'gentoo': ' ', 'darwin': ' ', 'macos': ' ',
-    'mac': ' ', 'windows': ' ',
+    'gentoo': ' '
 }
 
 # Random Block color list
@@ -301,20 +296,21 @@ Intel = '[blue]Intel[/blue]'
 # -------------------------------------------------------------------
 system_info_colors = [
     'red', 'sea_green1', 'dark_orange', 'medium_violet_red', 'slate_blue3',
-    'grey74', 'hot_pink', 'gold1', 'dark_cyan', 'orange4', 'orange4', 
+    'grey74', 'hot_pink', 'gold1', 'dark_cyan', 'orange4', 'blue', 
 ]
 
 system_info_title = [
-    f"        {OS_logos.get(OS_name, ' ')} │", # os
-    '          │', # kernel
-    '          │', # cpu
-    '          │', # gpu
-    '          │', # ram
-    '          │', # swap
-    '          │', # disk
-    '          │', # network
-    '          │', # ping
-    '          │', # uptime
+    f"        OS {OS_logos.get(OS_name, ' ')}      │", # os
+    '        Kernel    │', # kernel
+    '        CPU       │', # cpu
+    '        GPU       │', # gpu
+    '        Display   │', # resolution
+    '        Memory    │', # ram
+    '        Swap      │', # swap
+    '        Disk      │', # disk
+    '        Network   │', # network
+    '        Ping      │', # ping
+    '        UpTime    │', # uptime
 ]
 
 NODE = "[white]  {}$ [/white][yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan]"
@@ -360,28 +356,16 @@ GHOST = """
 
 def cpu() -> str:
     cpu_info = ''
-    if platform.system() == 'Linux':
-        cmd = 'cat /proc/cpuinfo'
-        all_info = subprocess.check_output(cmd, shell=True).decode().strip()
-        for line in all_info.split('\n'):
-            if 'model name' in line:
-                cpu_info = ''.join(re.sub(r".*model name.*:", '', line)).replace('CPU @ ', '').strip()
-                break
-            elif 'Hardware' in line:
-                cpu_info = ''.join(re.sub(r"(.*Hardware.*:)|(\(.*\))", '', line)).strip()
-                break
-
-    elif platform.system() == 'Darwin':
-        os.environ['PATH'] = os.environ['PATH'] + os.pathsep + '/usr/sbin'
-        cmd ='sysctl -n machdep.cpu.brand_string'
-        cpu_info = subprocess.check_output(cmd).strip()
-
-    elif platform.system() == 'Windows':
-        cpu_info = platform.processor().strip()
+    cmd = 'cat /proc/cpuinfo'
+    all_info = subprocess.check_output(cmd, shell=True).decode().strip()
+    for line in all_info.split('\n'):
+        if 'model name' in line:
+            cpu_info = ''.join(re.sub(r".*model name.*:", '', line)).replace('CPU @ ', '').strip()
+            break
+        elif 'Hardware' in line:
+            cpu_info = ''.join(re.sub(r"(.*Hardware.*:)|(\(.*\))", '', line)).strip()
+            break
     
-    else:
-        cpu_info = UNSUPPORTED_BANNER
-
     return f" {cpu_info} {psutil.cpu_count()} Cores"
 
 @exception_handler(RuntimeWarning, PermissionError, OSError)
@@ -414,10 +398,7 @@ def disk() -> str:
 
 def ping() -> str:
     cmd = 'ping {} 1 8.8.8.8'
-    if platform.system() == "Windows":
-        cmd = cmd.format('-n')
-    elif platform.system() in "Linux Darwin":
-        cmd = cmd.format('-c')
+    cmd = cmd.format('-c')
     try:
         if not iface_addrs:
             return ' 999ms   8.8.8.8'
@@ -448,89 +429,73 @@ def network() -> str:
         return f" {iface_buffer}"
 
 def gpu() -> str:
-    gpu_info = ''
-    def finder(brand: Dict[str, List[str]]) -> Generator[str, None, None]:
-        patterns = {
-            'AMD': r"\[.*\].*\[.*\]",
-            'Intel': r"(U?HD Graphics [0-9]*?$)|(Iris Xe Graphics.*)",
-            'NVIDIA': r"\[.*\]"
-        }
-        for name, gpus in brand.items():
-            for gpu in gpus:
-                try:
-                    temp = re.search(patterns.get(name, r".*"), gpu)\
-                        .group().replace('[', '').replace(']', '')
-                except Exception:
-                    yield ""
-                else:
-                    yield f"{name} {temp} │ "
+    gpu_info = 'NVIDIA GeForce RTX 3060 Mobile / Max-Q'
+    # def finder(brand: Dict[str, List[str]]) -> Generator[str, None, None]:
+    #     patterns = {
+    #         'AMD': r"\[.*\].*\[.*\]",
+    #         'Intel': r"(U?HD Graphics [0-9]*?$)|(Iris Xe Graphics.*)",
+    #         'NVIDIA': r"\[.*\]"
+    #     }
+    #     for name, gpus in brand.items():
+    #         for gpu in gpus:
+    #             try:
+    #                 temp = re.search(patterns.get(name, r".*"), gpu)\
+    #                     .group().replace('[', '').replace(']', '')
+    #             except Exception:
+    #                 yield ""
+    #             else:
+    #                 yield f"{name} {temp} │ "
 
-    # TODO: test gpu info for other os and hardwares.
-    # This is Beta!
-    if platform.system() == 'Linux':
-        stdout = subprocess.run(
-            'lspci',
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL
-        ).stdout.decode('utf-8')
-        amd: Dict[str, List[str]] = {'AMD': [
-            *re.findall(r"VGA.*(AMD.*) \(.*", stdout),
-            *re.findall(r"3D.*(AMD.*) \(.*", stdout),
-        ]}
-        intel: Dict[str, List[str]] = {'Intel': [
-            *re.findall(r"VGA.*(Intel.*) \(.*", stdout),
-            *re.findall(r"3D.*(Intel.*) \(.*", stdout),
-        ]}
-        nvidia: Dict[str, List[str]] = {'NVIDIA': [
-            *re.findall(r"VGA.*(NVIDIA.*) \(.*", stdout),
-            *re.findall(r"3D.*(NVIDIA.*) \(.*", stdout),
-        ]}
+    # stdout = subprocess.run(
+    #     'lspci',
+    #     shell=True,
+    #     stdout=subprocess.PIPE,
+    #     stderr=subprocess.DEVNULL
+    # ).stdout.decode('utf-8')
+    # amd: Dict[str, List[str]] = {'AMD': [
+    #     *re.findall(r"VGA.*(AMD.*) \(.*", stdout),
+    #     *re.findall(r"3D.*(AMD.*) \(.*", stdout),
+    # ]}
+    # intel: Dict[str, List[str]] = {'Intel': [
+    #     *re.findall(r"VGA.*(Intel.*) \(.*", stdout),
+    #     *re.findall(r"3D.*(Intel.*) \(.*", stdout),
+    # ]}
+    # nvidia: Dict[str, List[str]] = {'NVIDIA': [
+    #     *re.findall(r"VGA.*(NVIDIA.*) \(.*", stdout),
+    #     *re.findall(r"3D.*(NVIDIA.*) \(.*", stdout),
+    # ]}
 
-        for brand in [amd, intel, nvidia]:
-            for gpu in finder(brand):
-                gpu_info += gpu
-        
-        if not gpu_info:
-            gpu_info = 'Platform unsupported'
-        else:
-            gpu_info = gpu_info.strip('│ ')
-
-    elif platform.system() == 'Darwin':
-        gpu_info = 'Not implemented'
-        ... # system_profiler SPDisplaysDataType
-
-    elif platform.system() == 'Windows':
-        gpu_info = 'Not implemented'
-        ... # wmic path Win32_VideoController get caption
+    # for brand in [amd, intel, nvidia]:
+    #     for gpu in finder(brand):
+    #         gpu_info += gpu
     
-    else:
-        gpu_info = UNSUPPORTED_BANNER
+    # if not gpu_info:
+    #     gpu_info = 'Platform unsupported'
+    # else:
+    #     gpu_info = gpu_info.strip('│ ')
 
     return f" {gpu_info}"
 
 def operate() -> str:
-    return f" {OS_name.title()} {distro.version()}"
+    return f" {OS_name.title()} {OS_version}"
 
 def kernel() -> str:
-    return f" {platform.release()}"
+    return f" {os.uname()[2]}"
+
+def display() -> str:
+    cmd = "xrandr | awk 'match($0,/[0-9]*\.[0-9]*\*/)'"
+    all_info = subprocess.check_output(cmd, shell=True).decode().strip().split()
+    resolution = f"{all_info[0]}"
+    max_refresh_rate = f"{all_info[1]}Hz"
+    return f" {resolution} {max_refresh_rate}"
 
 def node() -> str:
     global D
-    shell = subprocess.check_output(
-        'echo $SHELL',
-        shell=True
-    ).decode('utf-8').split('/')[-1].strip()
-    if platform.system() in "Linux Darwin":
-        user = os.environ.get('USER')
-        host = platform.node()
-        D = len(shell) + len(user) + len(host)
-        return NODE.format(shell, user, host)
-    elif platform.system() == 'Windows':
-        user = os.environ.get('USERNAME')
-        host = platform.node()
-        D = len(user) + len(host)
-        return NODE.format(':\>', user, host)
+    shell = os.environ.get('SHELL').split('/')[3]
+    user = os.environ.get('USER')
+    host = os.uname()[1]
+    D = len(shell) + len(user) + len(host)
+    return NODE.format(shell, user, host)
 
 def uptime() -> str:
     system_up = round(time() - psutil.boot_time())
@@ -573,9 +538,17 @@ def main() -> None:
     # Draw system info
     # -------------------------------------------------------------------
     system_info_details: List[str] = [
-        operate(), kernel(), cpu(),
-        gpu(), ram(), swap(), disk(),
-        network(), ping(), uptime()
+        operate(),
+        kernel(),
+        cpu(),
+        gpu(),
+        display(),
+        ram(),
+        swap(),
+        disk(),
+        network(),
+        ping(),
+        uptime()
     ]
 
     pprint(f"""
