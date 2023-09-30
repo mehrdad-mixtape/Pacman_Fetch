@@ -141,7 +141,6 @@ def threader(daemon: bool=False) -> Callable[[Callable], Callable]:
 # Classes
 # --------------------------------------------------------------------
 class Options:
-
     __slots__ = "__option_list", "__option_method"
     def __init__(self):
         self.__option_list: List[str] = []
@@ -166,51 +165,64 @@ class Options:
             has_input: maybe the switches include the argument after them.
             limit_of_args: numbers of arguments after switches and depends on has_input.
         """
-        self.__option_list.extend(switches)
         def __decorator__(func: Callable) -> Callable[[None], None]:
             for sw in switches:
+                goodbye(
+                    sw in self.__option_method.keys(),
+                    cause="Duplicate switch={0}, [bold]{1}[/bold] used for [bold]{2}[/bold]".format(
+                        sw, sw, self.__option_method.get(sw, (print,))[0].__name__
+                    )
+                )
                 self[sw] = (func, has_input, type_of_input)
+            self.__option_list.extend(switches)
+
         return __decorator__
 
-    def __setitem__(self, attr, value) -> None:
-        self.__option_method[attr] = value
+    def __setitem__(self, key, value) -> None:
+        self.__option_method[key] = value
 
-    def __getitem__(self, attr) -> Any:
-        return self.__option_method[attr]
+    def __getitem__(self, key) -> Any:
+        return self.__option_method[key]
 
     def parse(self) -> Generator[Any, None, None]:
-        for i, sw in enumerate(sys.argv): # sys.argv converted to set to remove the duplicate switches
+        for i, sw in enumerate(sys.argv, start=1):
             # goodbye(sw.startswith(('+', '=', '/', '\\', '$', '#', '>', '<', '@', '!', '`', '~')))
 
             if not sw.startswith(('-', '--')):
                 continue # valid switches can start with - --            
             
-            # Handle the complete-switches: Example ==> --help --version --delay
+            # Handle the complete-switches: Example ==> --add --list --dump
             if '--' in sw:
                 yield self.__switch_executer(sw, i)
                 continue
             
-            # Handle the abbreviation-switches: Example ==> -h -v -d
-            # Handle the mixed abbreviation-switches: Example ==> -hvd = -vdh
+            # Handle the abbreviation-switches: Example ==> -a -l -d
+            # Handle the mixed abbreviation-switches: Example ==> -ald = -dal
             for chr in sw:
+                goodbye( # if user enter just -
+                    sw.__len__() == 1,
+                    cause=f"Invalid Switch=({sw})"
+                )
                 if chr == '-': continue
-                esw = f"-{chr}" # esw = extracted_switch
-                yield self.__switch_executer(esw, i)
+                e_sw = f"-{chr}" # esw = extracted_switch
+                yield self.__switch_executer(e_sw, i)
 
     def __switch_executer(self, switch: str, switch_index: int) -> None:
         try:
-            func, has_input, type_of_input = self.option_method[switch] # func is __wrapper__ in __call__ that defined in Options class
-            # if switch has input, I should pass the location of input to func, if it hasn't, it will be handle in __wrapper__ with has_input
+            func, has_input, type_of_input = self.option_method[switch]
+            # func is __wrapper__ in __call__ that defined in Options class
+            # if switch has input, I should pass the location of input to func
+            # if it hasn't, it will be handle in __wrapper__ with has_input
         except KeyError:
             goodbye(True, cause=f"Invalid Switch=({switch})")
         # eval(f"{func}({i + 1})")
         if not has_input:
             return func()
         else:
-            arg_input = sys.argv[switch_index + 1].__str__()
+            arg_input = sys.argv[switch_index].__str__()
             goodbye(
                 type_of_input is None,
-                cause=f"Get type-of-arguments=({arg_input}) after {switch}",
+                cause=f"Get type-of-arguments=({arg_input}) after [bold]{switch}[/bold]",
                 silent=True
             )
             try:
@@ -218,7 +230,7 @@ class Options:
             except ValueError:
                 goodbye(
                     True,
-                    cause=f"Gave bad-argument=({arg_input}) after {switch}",
+                    cause=f"Gave bad-argument=({arg_input}) after [bold]{switch}[/bold]",
                     silent=True
                 )
             return func(arg_input)
