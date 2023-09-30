@@ -43,36 +43,47 @@ icon_in_terminal project [github](https://github.com/sebastiencs/icons-in-termin
 - Check this [tutorial](https://drive.google.com/file/d/1OzPaTG-C80zPBTJEpZWSkWy1y1jB03Pq/view?usp=sharing) for install fonts
 
 ## How to use?
-- **First way(Support *linux* and *wsl*)**: Run executable file that exist on **bin/** and run it.
-    ```bash
-    ./bin/pacmanfetch
-    ```
-- **Second way**: Run pacmanfetch.py
-    1. Install requirements
-        - Linux or mac or WSL:
-            ```bash
-            pip3 install -r requirements.txt
-            ```
-        - Windows:
-            - **Notice! If you wanna install `psutil` on windows (WSL is not enable) you may get this error:**
-            
-            *Microsoft Visual C++ 14.0 or greater is required (check and install new version of Microsoft Visual C++)*
-            ```bash
-            pip install -r requirements.txt
-            ```
-            - I don't recommend to use it on **cmd** or **powershell**
-    2. Run
-        - Linux or mac or WSL:
-            ```bash
-            python3 pacmanfetch.py
-            ```
+1. Install requirements
+    - Linux or mac or WSL:
+        ```bash
+        pip3 install -r requirements.txt
+        ```
+    - Windows:
+        - **Notice! If you wanna install `psutil` on windows (WSL is not enable) you may get this error:**
+        
+        *Microsoft Visual C++ 14.0 or greater is required (check and install new version of Microsoft Visual C++)*
+        ```bash
+        pip install -r requirements.txt
+        ```
+        - I don't recommend to use it on **cmd** or **powershell**
+2. Run
+    - Linux:
+        ```bash
+        python3 linux/pacmanfetch_linux.py
+        ```
+    - MAC or WSL:
+        ```bash
+        python other_os/pacmanfetch_other.py
+        ```
 
-    - Check the switches of pacmanfetch:
-    ```bash
-    python3 pacmanfetch -h
-    ```
-    - Get delay:
-    ```bash
-    # typewriter style
-    python3 pacmanfetch -d 10
-    ```
+### Config.json
+config.json use for:
+1. set dns address to ping it.
+2. set gpu_info, if your gpu_info not found!
+
+### Check the switches of pacmanfetch:
+```
+Helps:
+    -d --delay: Get delay to show you typewriter style
+        $ pacmanfetch -d 10
+    -p --pacman: Show you big pacman
+        $ pacmanfetch -p
+    -v --version: Show you version
+        $ pacmanfetch -v
+    -i --ping: Enable or Disable ping
+        $ pacmanfetch -i
+    -c --config: Use config file
+        $ pacmanfetch -c
+    -h --help: Show help
+        $ pacmanfetch -h
+```
