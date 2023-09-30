@@ -14,7 +14,7 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.6.9-{ALPHA}"
+__version__ = f"v0.7.5-{BETA}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -76,9 +76,9 @@ Helps:
     [bold][green]-v --version[/green][/bold]: Show you version
         $ pacmanfetch -v
     [bold][gold1]-i --ping[/gold1][/bold]: Enable or Disable ping
-        $ pacmanfetch -v
+        $ pacmanfetch -i
     [bold][medium_violet_red]-c --config[/medium_violet_red][/bold]: Use config file
-        $ pacmanfetch -v
+        $ pacmanfetch -c
     [bold][orange4]-h --help[/orange4][/bold]: Show help
         $ pacmanfetch -h
 """
@@ -414,7 +414,6 @@ GHOST = """
 ▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒
 """
 
-@threader(daemon=True)
 def cpu() -> str:
     cpu_info = ''
     cmd = 'cat /proc/cpuinfo'
@@ -428,29 +427,28 @@ def cpu() -> str:
             break
 
     outputs['CPU'] = f" {cpu_info} {psutil.cpu_count()} Cores"
-    return f" {cpu_info} {psutil.cpu_count()} Cores"
+    return outputs['CPU']
 
-@threader(daemon=True)
 @exception_handler(RuntimeWarning, PermissionError, OSError)
 def ram() -> str:
     mem = psutil.virtual_memory()
     usage = round(mem.percent)
     used = round(mem.used / (1024 ** 3), 1)
     total = round(mem.total / (1024 ** 3), 1)
-    outputs['Memory'] = f" {used} GB / {total} GB usage: {usage}%"
-    return f" {used} GB / {total} GB usage: {usage}%"
 
-@threader(daemon=True)
+    outputs['Memory'] = f" {used} GB / {total} GB usage: {usage}%"
+    return outputs['Memory']
+
 @exception_handler(RuntimeWarning, PermissionError, OSError)
 def swap() -> str:
     swap = psutil.swap_memory()
     usage = round(swap.percent)
     used = round(swap.used / (1024 ** 3), 1)
     total = round(swap.total / (1024 ** 3), 1)
-    outputs['Swap'] = f" {used} GB / {total} GB usage: {usage}%"
-    return f" {used} GB / {total} GB usage: {usage}%"
 
-@threader(daemon=True)
+    outputs['Swap'] = f" {used} GB / {total} GB usage: {usage}%"
+    return outputs['Swap']
+
 @exception_handler(RuntimeWarning, PermissionError, OSError)
 def disk() -> str:
     home = psutil.disk_usage('/home')
@@ -462,7 +460,7 @@ def disk() -> str:
     root_free = round(root.free / (1024 ** 3), 1)
     
     outputs['Disk'] = f" Root({root_total} GB) free: {root_free} GB │ Home({home_total} GB) free: {home_free} GB"
-    return f" Root({root_total} GB) free: {root_free} GB │ Home({home_total} GB) free: {home_free} GB"
+    return outputs['Disk']
 
 def ping() -> str:
     cmd = f"ping -c 1 {config['dns']}"
@@ -477,7 +475,7 @@ def ping() -> str:
     except Exception:
         return f" 999ms   {config['dns']}"
 
-@threader(daemon=True)
+@threader(daemon=pacman_ping)
 @exception_handler(RuntimeWarning, PermissionError, OSError)
 def network() -> str:
     net_ifaces = psutil.net_if_addrs()
@@ -492,25 +490,26 @@ def network() -> str:
                         ifaces_addr.append(f"{interface_name}   {address.address} │")
     if not ifaces_addr:
         outputs['Network'] = ' Check your   Connections'
-        return ' Check your   Connections'
+        return outputs['Network']
     else:
         iface_buffer = "{} " * len(ifaces_addr)
         iface_buffer = iface_buffer.format(*ifaces_addr).strip(' │')
-        outputs['Network'] = f" {iface_buffer} {ping() if pacman_ping else ''}"
-        return f" {iface_buffer} {ping() if pacman_ping else ''}"
 
-@threader(daemon=False)
+        outputs['Network'] = f" {iface_buffer} {ping() if pacman_ping else ''}"
+        return outputs['Network']
+
+@threader(daemon=pacman_config)
 def gpu() -> str:
     gpu_info = ''
 
     if pacman_config:
         gpu_info = config["gpu"]
         outputs['GPU'] = f" {gpu_info}"
-        return f" {gpu_info}"
+        return outputs['GPU']
         
     def finder(brand: Dict[str, List[str]]) -> Generator[str, None, None]:
         patterns = {
-            'AMD': r"\[.*\]",
+            'AMD': r"\[.*\] Rembrandt",
             'Intel': r"(U?HD Graphics [0-9]*?$)|(Iris Xe Graphics.*)",
             'NVIDIA': r"\[.*\]"
         }
@@ -554,26 +553,30 @@ def gpu() -> str:
         gpu_info = gpu_info.strip('│ ')
 
     outputs['GPU'] = f" {gpu_info}"
-    return f" {gpu_info}"
+    return outputs['GPU']
 
-@threader(daemon=True)
 def operate() -> str:
     outputs['OS'] = f" {OS_name.title()} {OS_version}"
-    return f" {OS_name.title()} {OS_version}"
+    return outputs['OS']
 
-@threader(daemon=True)
 def kernel() -> str:
     outputs['Kernel'] = f" {os.uname()[2]}"
-    return f" {os.uname()[2]}"
+    return outputs['Kernel']
 
-@threader(daemon=True)
 def display() -> str:
     cmd = "xrandr | awk 'match($0,/[0-9]*\.[0-9]*\*/)'"
-    all_info = subprocess.check_output(cmd, shell=True).decode().strip().split()
-    resolution = f"{all_info[0]}"
-    max_refresh_rate = f"{all_info[1]}Hz"
-    outputs['Display'] = f" {resolution} {max_refresh_rate}"
-    return f" {resolution} {max_refresh_rate}"
+    all_info = subprocess.check_output(cmd, shell=True).decode().strip().split('\n')
+    displays = []
+    for info in all_info:
+        resolution = info.split()[0]
+        max_refresh_rate = max(
+            [re.sub(r"(\*\+)|(\*)", '', ref) for ref in info.split()[1:]],
+            key=len
+        )
+        displays.append(f" {resolution} {max_refresh_rate}Hz ")
+
+    outputs['Display'] = '│'.join(displays)
+    return outputs['Display']
 
 def node() -> str:
     global D
@@ -583,14 +586,13 @@ def node() -> str:
     D = len(shell) + len(user) + len(host)
     return NODE.format(shell, user, host)
 
-@threader(daemon=True)
 def uptime() -> str:
     system_up = round(time() - psutil.boot_time())
     hours = system_up // 60 // 60
     minutes = system_up // 60 % 60
     seconds = system_up % 60
     outputs['UpTime'] = f" {hours}h {minutes}m {seconds}s"
-    return f" {hours}h {minutes}m {seconds}s"
+    return outputs['UpTime']
 
 @exception_handler(IndexError, cause=f"Not enough arguments")
 @exception_handler(KeyboardInterrupt, cause=f"Ctrl+C", do_this=sys.exit)
