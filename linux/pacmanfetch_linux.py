@@ -14,7 +14,7 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.7.5-{BETA}"
+__version__ = f"v0.7.6-{STABLE}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -83,12 +83,6 @@ Helps:
         $ pacmanfetch -h
 """
 
-# Load config.json
-# -------------------------------------------------------------------
-config_path = os.path.dirname(os.path.abspath(__file__))
-config_file = open(f"{config_path}/config.json", mode='r')
-config = json.load(config_file)
-
 # Functions
 # ---------------------------------------------------------------------
 pprint = lambda *args, **kwargs: Console().print(*args, **kwargs)
@@ -101,6 +95,8 @@ def goodbye(expression: bool, cause: str='Unknown', silent: bool=False):
         if not silent: pprint(HELP)
         pprint(f"[{ERROR}]. {cause}")
         sys.exit()
+
+clear()
 
 # Decorators
 # --------------------------------------------------------------------
@@ -137,6 +133,24 @@ def threader(daemon: bool=False) -> Callable[[Callable], Callable]:
                 thread.join()
         return __wrapper__
     return __decorator__
+
+# Load config.json
+# -------------------------------------------------------------------
+config_path = os.path.dirname(os.path.abspath(__file__))
+if "config.json" in os.listdir(f"{config_path}/"):
+    config_file = open(f"{config_path}/config.json", mode='r')
+else:
+    default_conf = {
+        "dns": "8.8.8.8",
+        "gpu": "VGA"
+    }
+    with open(f"{config_path}/config.json", mode='w') as file:
+        json.dump(default_conf, file)
+    config_file = open(f"{config_path}/config.json", mode='r')
+    pprint(f"[{NOTICE}]. config_file created!")
+    
+
+config = json.load(config_file)
 
 # Classes
 # --------------------------------------------------------------------
@@ -609,8 +623,6 @@ def uptime() -> str:
 @exception_handler(IndexError, cause=f"Not enough arguments")
 @exception_handler(KeyboardInterrupt, cause=f"Ctrl+C", do_this=sys.exit)
 def main() -> None:
-    clear()
-
     max_width = os.get_terminal_size().columns // (29) # 29 = width of ghost
     max_ghost = limit if max_width >= limit else max_width # How many ghost can place on terminal
 
@@ -651,6 +663,8 @@ def main() -> None:
     network()
     uptime()
     # ]
+
+    config_file.close()
 
     pprint(f"""
         {node()}
