@@ -492,15 +492,9 @@ def disk() -> str:
     outputs['Disk'] = f" Root({root_total} GB) free: {root_free} GB │ Home({home_total} GB) free: {home_free} GB"
     return outputs['Disk']
 
-def ping(force: bool=False) -> str:
+def ping() -> str:
     cmd = f"ping -c 1 {config['dns']}"
     try:
-        if force:
-            with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE) as ping_proc:
-                stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
-                time = re.findall(r"time=.*ms", stdout)[0].replace('time=', '')
-                return f" {time}   {config['dns']}"
-
         if not ifaces_addr:
             return f" 999ms   {config['dns']}"
         else:
@@ -526,7 +520,7 @@ def network() -> str:
                         else:
                             ifaces_addr.append(f"{interface_name}   {address.address} │")
     except (RuntimeWarning, PermissionError, OSError):
-        outputs['Network'] = f" Wlan or Eth IP? {ping() if pacman_ping else ''}"
+        outputs['Network'] = f" Check your   Connections {ping() if pacman_ping else ''}"
         return outputs['Network']
 
     if not ifaces_addr:
