@@ -14,7 +14,7 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.7.8-{ALPHA}"
+__version__ = f"v0.7.9-{ALPHA}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -347,12 +347,10 @@ COLOR_BANNER = """{}{}{}{}{}{}{}
 
 # OS logos
 # -------------------------------------------------------------------
-try:
-    OS_name = os.uname()[3].split()[0].split('-')[1].lower()
-    OS_version = os.uname()[3].split()[0].split('-')[0].split('~')[1]
-except IndexError:
-    OS_name = distro.id()
-    OS_version = distro.version()
+# OS_name = os.uname()[3].split()[0].split('-')[1].lower()
+# OS_version = os.uname()[3].split()[0].split('-')[0].split('~')[1]
+OS_name = distro.id()
+OS_version = distro.version(pretty=True, best=True)
 
 TTY = f" {os.ttyname(sys.stdout.fileno())}"
 
@@ -620,7 +618,7 @@ def display() -> str:
 
 def node() -> str:
     global D
-    shell = os.environ.get('SHELL').split('/')[3]
+    shell = os.environ.get('SHELL').split('/')[-1]
     user = os.environ.get('USER')
     host = os.uname()[1]
     D = len(shell) + len(user) + len(host)
