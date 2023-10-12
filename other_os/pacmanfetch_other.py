@@ -14,7 +14,7 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.7.5-{BETA}"
+__version__ = f"v0.6.4-{BETA}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -26,47 +26,33 @@ from time import sleep, time
 from rich.console import Console
 from rich.table import Table
 from rich import pretty, traceback
-from threading import Thread
 pretty.install()
 traceback.install()
 from random import shuffle, choice
-import os, subprocess, re, sys, psutil, json
+import os, platform, subprocess, \
+    re, sys, distro, psutil
 
 
 # Variables
 # ---------------------------------------------------------------------
-pacman_delay = 0
+delay = 0
 pacman = False
-pacman_ping = False
-pacman_config = False
 INFO = '[green]Info[/green]'
 NOTICE = '[purple]Notice[/purple]'
 WARNING = '[dark_orange]Warning[/dark_orange]'
 ERROR = '[red]Error[/red]'
-threads: List[Thread] = []
-outputs: Dict[str, str] = {
-    'OS': '',
-    'Kernel': '',
-    'CPU': '',
-    'GPU': '',
-    'Display': '',
-    'Memory': '',
-    'Swap': '',
-    'Disk': '',
-    'Network': '',
-    'UpTime': '',
-}
 
 # Banners
 # -------------------------------------------------------------------
 MAIN_BANNER = """[blink]┌───────────────────┐
            │   Pacmanfetch   │
            └───────────────────┘[/blink]"""
+UNSUPPORTED_BANNER = f" [*] {ERROR}. Platform unsupported"
 
 HELP = f"""
 Intro:
     Fetch your system!
-    ---===❰ [blink]  [gold1]Pacmanfetch[/gold1]   [/blink] ❱===---
+    ---===❰ [blink]  [italic][gold1]Pacmanfetch[/gold1][/italic]   [/blink] ❱===---
 
 Helps:
     [bold][red]-d --delay[/red][/bold]: Get delay to show you typewriter style
@@ -75,31 +61,25 @@ Helps:
         $ pacmanfetch -p
     [bold][green]-v --version[/green][/bold]: Show you version
         $ pacmanfetch -v
-    [bold][gold1]-i --ping[/gold1][/bold]: Enable or Disable ping
-        $ pacmanfetch -i
-    [bold][medium_violet_red]-c --config[/medium_violet_red][/bold]: Use config file
-        $ pacmanfetch -c
     [bold][orange4]-h --help[/orange4][/bold]: Show help
         $ pacmanfetch -h
 """
-
-# Load config.json
-# -------------------------------------------------------------------
-config_path = os.path.dirname(os.path.abspath(__file__))
-config_file = open(f"{config_path}/config.json", mode='r')
-config = json.load(config_file)
 
 # Functions
 # ---------------------------------------------------------------------
 pprint = lambda *args, **kwargs: Console().print(*args, **kwargs)
 
 def clear() -> None:
-    os.system('clear')
+    if platform.system() in "Linux Darwin":
+        subprocess.run(['clear'])
+    elif platform.system() in "Windows":
+        subprocess.run(['cls'])
+    else: pass
 
 def goodbye(expression: bool, cause: str='Unknown', silent: bool=False):
     if expression:
         if not silent: pprint(HELP)
-        pprint(f"[{ERROR}]. {cause}")
+        pprint(f"[*] {ERROR}. {cause}")
         sys.exit()
 
 # Decorators
@@ -111,32 +91,15 @@ def exception_handler(*exceptions, cause: str='', do_this: Callable=sys.exit) ->
                 results = func(*args, **kwargs)
             except exceptions as err:
                 if cause:
-                    pprint(f"\n[{ERROR}]. {cause}")
+                    pprint(f"\n[*] {ERROR}. {cause}")
                 else:
-                    pprint(f"\n[{ERROR}]. {err}")
+                    pprint(f"\n[*] {err}")
                 do_this()
             else:
                 return results
         return __wrapper__
     return __decorator__
 
-def threader(daemon: bool=False) -> Callable[[Callable], Callable]:
-    def __decorator__(func: Callable) -> Callable[[Any], Any]:
-        def __wrapper__(*args, **kwargs) -> None:
-            thread = Thread(
-                target=func,
-                args=args,
-                kwargs=kwargs,
-                daemon=daemon
-            )
-            thread.start()
-            if daemon:
-                threads.append(thread)
-            else:
-                threads.append(thread)
-                thread.join()
-        return __wrapper__
-    return __decorator__
 
 # Classes
 # --------------------------------------------------------------------
@@ -239,7 +202,7 @@ option = Options()
 def do_you_wanna_see_version() -> None:
     pprint(
     f"""
-    ---===❰ [blink]  [gold1]Pacmanfetch[/gold1]  [/blink]❱===---
+    ---===❰ [blink]  [italic][gold1]Pacmanfetch[/gold1][/italic]   [/blink] ❱===---
     Version: {__version__}
     Source: {__repo__}
     """
@@ -248,23 +211,13 @@ def do_you_wanna_see_version() -> None:
 
 @option('-d', '--delay', has_input=True, type_of_input=int)
 def do_you_wanna_typewriter_style(speed: int) -> None:
-    global pacman_delay
-    pacman_delay = speed
+    global delay
+    delay = speed
 
 @option('-p', '--pacman')
 def do_you_wanna_show_pacman() -> None:
     global pacman
     pacman = True
-
-@option('-i', '--ping')
-def do_you_wanna_ping() -> None:
-    global pacman_ping
-    pacman_ping = True
-
-@option('-c', '--config')
-def do_you_wanna_use_config() -> None:
-    global pacman_config
-    pacman_config = True
 
 @option('-h', '--help')
 def do_you_wanna_help() -> None:
@@ -287,7 +240,7 @@ D = 0
 
 # Color list
 # -------------------------------------------------------------------
-colors: Tuple[str] = (
+colors: List[str] = [
     "[red]{}[/red]", #0
     "[purple]{}[/purple]", #1
     "[dark_orange]{}[/dark_orange]", #2
@@ -303,7 +256,7 @@ colors: Tuple[str] = (
     "[sea_green1]{}[/sea_green1]", #12
     "[white]{}[/white]", #13
     "[black]{}[/black]", #14
-)
+]
 
 # Colorful blocks
 # -------------------------------------------------------------------
@@ -321,9 +274,7 @@ COLOR_BANNER = """{}{}{}{}{}{}{}
 
 # OS logos
 # -------------------------------------------------------------------
-# OS_name = distro.id()
-OS_name = os.uname()[3].split()[0].split('-')[1].lower()
-OS_version = os.uname()[3].split()[0].split('-')[0].split('~')[1]
+OS_name = distro.id()
 OS_logos = {
     # It is not compatible for all os, because of icon-fonts.
     'nixos': ' ', 'ubuntu': ' ', 'debian': ' ',
@@ -331,7 +282,8 @@ OS_logos = {
     'centos': ' ', 'fedora': ' ', 'redhat': ' ',
     'arch': ' ', 'manjaro': ' ', 'suse': ' ',
     'slackware': ' ', 'alpine': ' ', 'bsd': ' ',
-    'gentoo': ' '
+    'gentoo': ' ', 'darwin': ' ', 'macos': ' ',
+    'mac': ' ', 'windows': ' ',
 }
 
 # Random Block color list
@@ -347,37 +299,29 @@ Intel = '[blue]Intel[/blue]'
 
 # System info
 # -------------------------------------------------------------------
-system_info_colors: List[str] = [
-    'red',                  # os
-    'sea_green1',           # kernel
-    'dark_orange',          # cpu
-    'medium_violet_red',    # gpu
-    'slate_blue3',          # resolution
-    'grey74',               # ram
-    'hot_pink',             # swap
-    'gold1',                # disk
-    'dark_cyan',            # network
-    'blue',                 # uptime
+system_info_colors = [
+    'red', 'sea_green1', 'dark_orange', 'medium_violet_red', 'slate_blue3',
+    'grey74', 'hot_pink', 'gold1', 'dark_cyan', 'orange4', 'orange4', 
 ]
 
-system_info_title: List[str] = [
-    f"        OS {OS_logos.get(OS_name, ' ')}      │", # os
-    '        Kernel    │', # kernel
-    '        CPU       │', # cpu
-    '        GPU       │', # gpu
-    '        Display   │', # resolution
-    '        Memory    │', # ram
-    '        Swap      │', # swap
-    '        Disk      │', # disk
-    '        Network   │', # network
-    '        UpTime    │', # uptime
+system_info_title = [
+    f"        {OS_logos.get(OS_name, ' ')} │", # os
+    '          │', # kernel
+    '          │', # cpu
+    '          │', # gpu
+    '          │', # ram
+    '          │', # swap
+    '          │', # disk
+    '          │', # network
+    '          │', # ping
+    '          │', # uptime
 ]
 
-NODE = "[white] {}%  [/white][yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan]"
+NODE = "[white]  {}$ [/white][yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan]"
 
 # IP addresses
 # -------------------------------------------------------------------
-ifaces_addr: List[str] = []
+iface_addrs: List[str] = []
 
 # Pacman: Width=29, Height=12
 # -------------------------------------------------------------------
@@ -416,18 +360,29 @@ GHOST = """
 
 def cpu() -> str:
     cpu_info = ''
-    cmd = 'cat /proc/cpuinfo'
-    all_info = subprocess.check_output(cmd, shell=True).decode().strip()
-    for line in all_info.split('\n'):
-        if 'model name' in line:
-            cpu_info = ''.join(re.sub(r".*model name.*:", '', line)).replace('CPU @ ', '').strip()
-            break
-        elif 'Hardware' in line:
-            cpu_info = ''.join(re.sub(r"(.*Hardware.*:)|(\(.*\))", '', line)).strip()
-            break
+    if platform.system() == 'Linux':
+        cmd = 'cat /proc/cpuinfo'
+        all_info = subprocess.check_output(cmd, shell=True).decode().strip()
+        for line in all_info.split('\n'):
+            if 'model name' in line:
+                cpu_info = ''.join(re.sub(r".*model name.*:", '', line)).replace('CPU @ ', '').strip()
+                break
+            elif 'Hardware' in line:
+                cpu_info = ''.join(re.sub(r"(.*Hardware.*:)|(\(.*\))", '', line)).strip()
+                break
 
-    outputs['CPU'] = f" {cpu_info} {psutil.cpu_count()} Cores"
-    return outputs['CPU']
+    elif platform.system() == 'Darwin':
+        os.environ['PATH'] = os.environ['PATH'] + os.pathsep + '/usr/sbin'
+        cmd ='sysctl -n machdep.cpu.brand_string'
+        cpu_info = subprocess.check_output(cmd).strip()
+
+    elif platform.system() == 'Windows':
+        cpu_info = platform.processor().strip()
+    
+    else:
+        cpu_info = UNSUPPORTED_BANNER
+
+    return f" {cpu_info} {psutil.cpu_count()} Cores"
 
 @exception_handler(RuntimeWarning, PermissionError, OSError)
 def ram() -> str:
@@ -435,9 +390,7 @@ def ram() -> str:
     usage = round(mem.percent)
     used = round(mem.used / (1024 ** 3), 1)
     total = round(mem.total / (1024 ** 3), 1)
-
-    outputs['Memory'] = f" {used} GB / {total} GB usage: {usage}%"
-    return outputs['Memory']
+    return f" {used} GB  {total} GB usage: {usage}%"
 
 @exception_handler(RuntimeWarning, PermissionError, OSError)
 def swap() -> str:
@@ -445,9 +398,7 @@ def swap() -> str:
     usage = round(swap.percent)
     used = round(swap.used / (1024 ** 3), 1)
     total = round(swap.total / (1024 ** 3), 1)
-
-    outputs['Swap'] = f" {used} GB / {total} GB usage: {usage}%"
-    return outputs['Swap']
+    return f" {used} GB  {total} GB usage: {usage}%"
 
 @exception_handler(RuntimeWarning, PermissionError, OSError)
 def disk() -> str:
@@ -459,57 +410,48 @@ def disk() -> str:
     root_total = round(root.total / (1024 ** 3), 1)
     root_free = round(root.free / (1024 ** 3), 1)
     
-    outputs['Disk'] = f" Root({root_total} GB) free: {root_free} GB │ Home({home_total} GB) free: {home_free} GB"
-    return outputs['Disk']
+    return f" Root({root_total} GB) free: {root_free} GB │ Home({home_total} GB) free: {home_free} GB"
 
 def ping() -> str:
-    cmd = f"ping -c 1 {config['dns']}"
+    cmd = 'ping {} 1 8.8.8.8'
+    if platform.system() == "Windows":
+        cmd = cmd.format('-n')
+    elif platform.system() in "Linux Darwin":
+        cmd = cmd.format('-c')
     try:
-        if not ifaces_addr:
-            return f" 999ms   {config['dns']}"
+        if not iface_addrs:
+            return ' 999ms   8.8.8.8'
         else:
             with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE) as ping_proc:
                 stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
                 time = re.findall(r"time=.*ms", stdout)[0].replace('time=', '')
-                return f" {time}   {config['dns']}"
+                return f" {time}   8.8.8.8"
     except Exception:
-        return f" 999ms   {config['dns']}"
+        return ' 999ms   8.8.8.8'
 
-@threader(daemon=pacman_ping)
 @exception_handler(RuntimeWarning, PermissionError, OSError)
 def network() -> str:
-    net_ifaces = psutil.net_if_addrs()
-
-    for interface_name, interface_addresses in net_ifaces.items():
-        if interface_name.startswith(('w', 'e', 'u', 't', 'n')):
+    if_addrs = psutil.net_if_addrs()
+    for interface_name, interface_addresses in if_addrs.items():
+        if interface_name.startswith(('w', 'e', 'u', 't')):
             for address in interface_addresses:
                 if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
-                    if interface_name.startswith(('t', 'n')):
-                        ifaces_addr.insert(0, f"VPN  │")
+                    if interface_name.startswith(('t')):
+                        iface_addrs.append(f"VPN is Connected │")
                     else:
-                        ifaces_addr.append(f"{interface_name}   {address.address} │")
-    if not ifaces_addr:
-        outputs['Network'] = ' Check your   Connections'
-        return outputs['Network']
+                        iface_addrs.append(f"{interface_name}   {address.address} │")
+    if not iface_addrs:
+        return ' Check your   Connections'
     else:
-        iface_buffer = "{} " * len(ifaces_addr)
-        iface_buffer = iface_buffer.format(*ifaces_addr).strip(' │')
+        iface_buffer = "{} " * len(iface_addrs)
+        iface_buffer = iface_buffer.format(*iface_addrs).strip(' │')
+        return f" {iface_buffer}"
 
-        outputs['Network'] = f" {iface_buffer} {ping() if pacman_ping else ''}"
-        return outputs['Network']
-
-@threader(daemon=pacman_config)
 def gpu() -> str:
     gpu_info = ''
-
-    if pacman_config:
-        gpu_info = config["gpu"]
-        outputs['GPU'] = f" {gpu_info}"
-        return outputs['GPU']
-        
     def finder(brand: Dict[str, List[str]]) -> Generator[str, None, None]:
         patterns = {
-            'AMD': r"\[.*\] Rembrandt",
+            'AMD': r"\[.*\].*\[.*\]",
             'Intel': r"(U?HD Graphics [0-9]*?$)|(Iris Xe Graphics.*)",
             'NVIDIA': r"\[.*\]"
         }
@@ -521,78 +463,81 @@ def gpu() -> str:
                 except Exception:
                     yield ""
                 else:
-                    yield f"{temp} │ "
+                    yield f"{name} {temp} │ "
 
-    stdout = subprocess.run(
-        'lspci',
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL
-    ).stdout.decode('utf-8')
+    # TODO: test gpu info for other os and hardwares.
+    # This is Beta!
+    if platform.system() == 'Linux':
+        stdout = subprocess.run(
+            'lspci',
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL
+        ).stdout.decode('utf-8')
+        amd: Dict[str, List[str]] = {'AMD': [
+            *re.findall(r"VGA.*(AMD.*) \(.*", stdout),
+            *re.findall(r"3D.*(AMD.*) \(.*", stdout),
+        ]}
+        intel: Dict[str, List[str]] = {'Intel': [
+            *re.findall(r"VGA.*(Intel.*) \(.*", stdout),
+            *re.findall(r"3D.*(Intel.*) \(.*", stdout),
+        ]}
+        nvidia: Dict[str, List[str]] = {'NVIDIA': [
+            *re.findall(r"VGA.*(NVIDIA.*) \(.*", stdout),
+            *re.findall(r"3D.*(NVIDIA.*) \(.*", stdout),
+        ]}
 
-    amd: Dict[str, List[str]] = {'AMD': [
-        *re.findall(r"VGA.*(Advanced Micro Devices.*AMD.*) \(.*", stdout),
-        *re.findall(r"3D.*(Advanced Micro Devices.*AMD.*) \(.*", stdout),
-    ]}
-    intel: Dict[str, List[str]] = {'Intel': [
-        *re.findall(r"VGA.*(Intel.*) \(.*", stdout),
-        *re.findall(r"3D.*(Intel.*) \(.*", stdout),
-    ]}
-    nvidia: Dict[str, List[str]] = {'NVIDIA': [
-        *re.findall(r"VGA.*(NVIDIA.*) \(.*", stdout),
-        *re.findall(r"3D.*(NVIDIA.*) \(.*", stdout),
-    ]}
+        for brand in [amd, intel, nvidia]:
+            for gpu in finder(brand):
+                gpu_info += gpu
+        
+        if not gpu_info:
+            gpu_info = 'Platform unsupported'
+        else:
+            gpu_info = gpu_info.strip('│ ')
 
-    for brand in [amd, intel, nvidia]:
-        for gpu in finder(brand):
-            gpu_info += gpu
+    elif platform.system() == 'Darwin':
+        gpu_info = 'Not implemented'
+        ... # system_profiler SPDisplaysDataType
+
+    elif platform.system() == 'Windows':
+        gpu_info = 'Not implemented'
+        ... # wmic path Win32_VideoController get caption
     
-    if not gpu_info:
-        gpu_info = config["gpu"]
     else:
-        gpu_info = gpu_info.strip('│ ')
+        gpu_info = UNSUPPORTED_BANNER
 
-    outputs['GPU'] = f" {gpu_info}"
-    return outputs['GPU']
+    return f" {gpu_info}"
 
 def operate() -> str:
-    outputs['OS'] = f" {OS_name.title()} {OS_version}"
-    return outputs['OS']
+    return f" {OS_name.title()} {distro.version()}"
 
 def kernel() -> str:
-    outputs['Kernel'] = f" {os.uname()[2]}"
-    return outputs['Kernel']
-
-def display() -> str:
-    cmd = "xrandr | awk 'match($0,/[0-9]*\.[0-9]*\*/)'"
-    all_info = subprocess.check_output(cmd, shell=True).decode().strip().split('\n')
-    displays = []
-    for info in all_info:
-        resolution = info.split()[0]
-        max_refresh_rate = max(
-            [re.sub(r"(\*\+)|(\*)", '', ref) for ref in info.split()[1:]],
-            key=len
-        )
-        displays.append(f" {resolution} {max_refresh_rate}Hz ")
-
-    outputs['Display'] = '│'.join(displays)
-    return outputs['Display']
+    return f" {platform.release()}"
 
 def node() -> str:
     global D
-    shell = os.environ.get('SHELL').split('/')[3]
-    user = os.environ.get('USER')
-    host = os.uname()[1]
-    D = len(shell) + len(user) + len(host)
-    return NODE.format(shell, user, host)
+    shell = subprocess.check_output(
+        'echo $SHELL',
+        shell=True
+    ).decode('utf-8').split('/')[-1].strip()
+    if platform.system() in "Linux Darwin":
+        user = os.environ.get('USER')
+        host = platform.node()
+        D = len(shell) + len(user) + len(host)
+        return NODE.format(shell, user, host)
+    elif platform.system() == 'Windows':
+        user = os.environ.get('USERNAME')
+        host = platform.node()
+        D = len(user) + len(host)
+        return NODE.format(':\>', user, host)
 
 def uptime() -> str:
     system_up = round(time() - psutil.boot_time())
     hours = system_up // 60 // 60
     minutes = system_up // 60 % 60
     seconds = system_up % 60
-    outputs['UpTime'] = f" {hours}h {minutes}m {seconds}s"
-    return outputs['UpTime']
+    return f" {hours}h {minutes}m {seconds}s"
 
 @exception_handler(IndexError, cause=f"Not enough arguments")
 @exception_handler(KeyboardInterrupt, cause=f"Ctrl+C", do_this=sys.exit)
@@ -623,44 +568,36 @@ def main() -> None:
                     ),
                 )
             )
-            sleep(pacman_delay / 1000)
+            sleep(delay / 1000)
 
     # Draw system info
     # -------------------------------------------------------------------
-    # system_info_details: List[str] = [
-    operate()
-    kernel()
-    cpu()
-    gpu()
-    display()
-    ram()
-    swap()
-    disk()
-    network()
-    uptime()
-    # ]
+    system_info_details: List[str] = [
+        operate(), kernel(), cpu(),
+        gpu(), ram(), swap(), disk(),
+        network(), ping(), uptime()
+    ]
 
     pprint(f"""
         {node()}
-        {'─' * (int(D // 2) - 2)}┬─ {MINI_PACMAN}{'─' * (int(D // 2) - 1)}""")
+        {'─' * (int(D // 2) - 4)} {MINI_PACMAN}{'─' * (int(D // 2) - 4)}""")
 
-    for color, hw in zip(system_info_colors, outputs.keys()):
+    for color in system_info_colors:
         try:
-            # details = system_info_details.pop(0)
-            details = outputs[hw]
+            details = system_info_details.pop(0)
             title = system_info_title.pop(0)
         except IndexError:
             break
         else:
             for char in title: # Type titles with color
                 pprint(f"[{color}]{char}[/{color}]", end='')
-                sleep(pacman_delay / 1000)
+                sleep(delay / 1000)
             for char in details: # Type details without color
                 pprint(f"{char}", end='')
-                sleep(pacman_delay / 1000)
+                sleep(delay / 1000)
             print()
-
-    pprint(f"""        {'─' * (int(D // 2) - 2)}┴─ {MINI_PACMAN}{'─' * (int(D // 2) - 1)}
+            '''─────────'''
+    pprint(f"""        {'─' * (int(D // 2) - 4)} {MINI_PACMAN}{'─' * (int(D // 2) - 4)}
 
           {COLOR_BANNER.format(*[color.format(F * 3) for color in colors])}
            {choice(colors).format(MAIN_BANNER)}""")
