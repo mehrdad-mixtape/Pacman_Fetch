@@ -14,7 +14,7 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.7.6-{STABLE}"
+__version__ = f"v0.7.8-{ALPHA}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -30,7 +30,7 @@ from threading import Thread
 pretty.install()
 traceback.install()
 from random import shuffle, choice
-import os, subprocess, re, sys, psutil, json
+import os, subprocess, re, sys, psutil, json, distro
 
 
 # Variables
@@ -347,9 +347,15 @@ COLOR_BANNER = """{}{}{}{}{}{}{}
 
 # OS logos
 # -------------------------------------------------------------------
-# OS_name = distro.id()
-OS_name = os.uname()[3].split()[0].split('-')[1].lower()
-OS_version = os.uname()[3].split()[0].split('-')[0].split('~')[1]
+try:
+    OS_name = os.uname()[3].split()[0].split('-')[1].lower()
+    OS_version = os.uname()[3].split()[0].split('-')[0].split('~')[1]
+except IndexError:
+    OS_name = distro.id()
+    OS_version = distro.version()
+
+TTY = f" {os.ttyname(sys.stdout.fileno())}"
+
 OS_logos = {
     # It is not compatible for all os, because of icon-fonts.
     'nixos': ' ', 'ubuntu': ' ', 'debian': ' ',
@@ -590,19 +596,27 @@ def kernel() -> str:
     return outputs['Kernel']
 
 def display() -> str:
-    cmd = "xrandr | awk 'match($0,/[0-9]*\.[0-9]*\*/)'"
-    all_info = subprocess.check_output(cmd, shell=True).decode().strip().split('\n')
-    displays = []
-    for info in all_info:
-        resolution = info.split()[0]
-        max_refresh_rate = max(
-            [re.sub(r"(\*\+)|(\*)", '', ref) for ref in info.split()[1:]],
-            key=len
-        )
-        displays.append(f" {resolution} {max_refresh_rate}Hz ")
+    try:
+        cmd = "xrandr | awk 'match($0,/[0-9]*\.[0-9]*\*/)'"
+        all_info = subprocess.check_output(cmd, shell=True).decode().strip().split('\n')
+        if not all_info[0]:
+            outputs['Display'] = TTY
+            return TTY
+    except FileNotFoundError:
+        outputs['Display'] = TTY
+        return TTY
+    else:
+        displays = []
+        for info in all_info:
+            resolution = info.split()[0]
+            max_refresh_rate = max(
+                [re.sub(r"(\*\+)|(\*)", '', ref) for ref in info.split()[1:]],
+                key=len
+            )
+            displays.append(f" {resolution} {max_refresh_rate}Hz ")
 
-    outputs['Display'] = '│'.join(displays)
-    return outputs['Display']
+        outputs['Display'] = '│'.join(displays)
+        return outputs['Display']
 
 def node() -> str:
     global D
@@ -665,6 +679,8 @@ def main() -> None:
     # ]
 
     config_file.close()
+    
+    clear()
 
     pprint(f"""
         {node()}
