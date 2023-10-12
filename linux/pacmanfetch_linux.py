@@ -14,7 +14,7 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.7.9-{ALPHA}"
+__version__ = f"v0.7.10-{ALPHA}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -506,20 +506,25 @@ def ping() -> str:
         return f" 999ms   {config['dns']}"
 
 @threader(daemon=pacman_ping)
-@exception_handler(RuntimeWarning, PermissionError, OSError)
+# @exception_handler(RuntimeWarning, PermissionError, OSError)
 def network() -> str:
-    net_ifaces = psutil.net_if_addrs()
+    try:
+        net_ifaces = psutil.net_if_addrs()
 
-    for interface_name, interface_addresses in net_ifaces.items():
-        if interface_name.startswith(('w', 'e', 'u', 't', 'n')):
-            for address in interface_addresses:
-                if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
-                    if interface_name.startswith(('t', 'n')):
-                        ifaces_addr.insert(0, f"VPN  │")
-                    else:
-                        ifaces_addr.append(f"{interface_name}   {address.address} │")
+        for interface_name, interface_addresses in net_ifaces.items():
+            if interface_name.startswith(('w', 'e', 'u', 't', 'n')):
+                for address in interface_addresses:
+                    if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
+                        if interface_name.startswith(('t', 'n')):
+                            ifaces_addr.insert(0, f"VPN  │")
+                        else:
+                            ifaces_addr.append(f"{interface_name}   {address.address} │")
+    except (RuntimeWarning, PermissionError, OSError):
+        outputs['Network'] = f" Wlan or Eth IP? {ping() if pacman_ping else ''}"
+        return outputs['Network']
+
     if not ifaces_addr:
-        outputs['Network'] = ' Check your   Connections'
+        outputs['Network'] = f" Check your   Connections {ping() if pacman_ping else ''}"
         return outputs['Network']
     else:
         iface_buffer = "{} " * len(ifaces_addr)
