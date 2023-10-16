@@ -14,7 +14,7 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.7.10-{ALPHA}"
+__version__ = f"v0.7.11-{ALPHA}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -626,7 +626,8 @@ def node() -> str:
     shell = os.environ.get('SHELL').split('/')[-1]
     user = os.environ.get('USER')
     host = os.uname()[1]
-    D = len(shell) + len(user) + len(host)
+    # D = len(shell) + len(user) + len(host)
+    D = len(user) + len(host) + 12
     return NODE.format(shell, user, host)
 
 def uptime() -> str:
@@ -683,7 +684,7 @@ def main() -> None:
 
     config_file.close()
     
-    clear()
+    # clear()
 
     pprint(f"""
         {node()}
