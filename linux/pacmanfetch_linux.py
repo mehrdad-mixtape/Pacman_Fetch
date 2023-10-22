@@ -14,7 +14,7 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.7.11-{ALPHA}"
+__version__ = f"v0.7.12-{ALPHA}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -626,8 +626,7 @@ def node() -> str:
     shell = os.environ.get('SHELL').split('/')[-1]
     user = os.environ.get('USER')
     host = os.uname()[1]
-    # D = len(shell) + len(user) + len(host)
-    D = len(user) + len(host) + 12
+    D = len(shell) + len(user) + len(host)
     return NODE.format(shell, user, host)
 
 def uptime() -> str:
@@ -641,7 +640,7 @@ def uptime() -> str:
 @exception_handler(IndexError, cause=f"Not enough arguments")
 @exception_handler(KeyboardInterrupt, cause=f"Ctrl+C", do_this=sys.exit)
 def main() -> None:
-    max_width = os.get_terminal_size().columns // (29) # 29 = width of ghost
+    max_width = os.get_terminal_size().columns // 29 # 29 = width of ghost
     max_ghost = limit if max_width >= limit else max_width # How many ghost can place on terminal
 
     # Argument parsing
@@ -688,7 +687,7 @@ def main() -> None:
 
     pprint(f"""
         {node()}
-        {'─' * (int(D // 2) - 2)}┬─ {MINI_PACMAN}{'─' * (int(D // 2) - 1)}""")
+        {'─' * (int(D // 2) - 2)}── {MINI_PACMAN}{'─' * (int(D // 2) - 1)}""")
 
     for color, hw in zip(system_info_colors, outputs.keys()):
         try:
@@ -706,7 +705,7 @@ def main() -> None:
                 sleep(pacman_delay / 1000)
             print()
 
-    pprint(f"""        {'─' * (int(D // 2) - 2)}┴─ {MINI_PACMAN}{'─' * (int(D // 2) - 1)}
+    pprint(f"""        {'─' * (int(D // 2) - 2)}── {MINI_PACMAN}{'─' * (int(D // 2) - 1)}
 
           {COLOR_BANNER.format(*[color.format(F * 3) for color in colors])}
            {choice(colors).format(MAIN_BANNER)}""")
