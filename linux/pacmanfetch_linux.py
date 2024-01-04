@@ -14,14 +14,13 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.7.12-{ALPHA}"
+__version__ = f"v0.8.0-{BETA}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
 Github repo: https://github.com/sebastiencs/icons-in-terminal """
 
-from typing import Tuple, List, Dict, \
-    Generator, Callable, Any
+from typing import Tuple, List, Dict, Generator, Callable, Any
 from time import sleep, time
 from rich.console import Console
 from rich.table import Table
@@ -30,32 +29,9 @@ from threading import Thread
 pretty.install()
 traceback.install()
 from random import shuffle, choice
-import os, subprocess, re, sys, psutil, json, distro
+import os, subprocess, re, sys, psutil, json, distro, random
 
-
-# Variables
-# ---------------------------------------------------------------------
-pacman_delay = 0
-pacman = False
-pacman_ping = False
-pacman_config = False
-INFO = '[green]Info[/green]'
-NOTICE = '[purple]Notice[/purple]'
-WARNING = '[dark_orange]Warning[/dark_orange]'
-ERROR = '[red]Error[/red]'
-threads: List[Thread] = []
-outputs: Dict[str, str] = {
-    'OS': '',
-    'Kernel': '',
-    'CPU': '',
-    'GPU': '',
-    'Display': '',
-    'Memory': '',
-    'Swap': '',
-    'Disk': '',
-    'Network': '',
-    'UpTime': '',
-}
+#TODO: Improve Option, "pacmanfetch -pi -v -d 10" != "pacmanfetch -d 10 -pi -v"
 
 # Banners
 # -------------------------------------------------------------------
@@ -88,15 +64,12 @@ Helps:
 pprint = lambda *args, **kwargs: Console().print(*args, **kwargs)
 
 def clear() -> None:
-    os.system('clear')
+    print('\033c', end='')
 
-def goodbye(expression: bool, cause: str='Unknown', silent: bool=False):
+def goodbye(expression: bool, cause: str='Unknown'):
     if expression:
-        if not silent: pprint(HELP)
         pprint(f"[{ERROR}]. {cause}")
         sys.exit()
-
-clear()
 
 # Decorators
 # --------------------------------------------------------------------
@@ -116,7 +89,7 @@ def exception_handler(*exceptions, cause: str='', do_this: Callable=sys.exit) ->
         return __wrapper__
     return __decorator__
 
-def threader(daemon: bool=False) -> Callable[[Callable], Callable]:
+def threader(daemon: bool=False) -> Callable[[Callable], Any]:
     def __decorator__(func: Callable) -> Callable[[Any], Any]:
         def __wrapper__(*args, **kwargs) -> None:
             thread = Thread(
@@ -134,38 +107,65 @@ def threader(daemon: bool=False) -> Callable[[Callable], Callable]:
         return __wrapper__
     return __decorator__
 
-# Load config.json
-# -------------------------------------------------------------------
-config_path = os.path.dirname(os.path.abspath(__file__))
-if "config.json" in os.listdir(f"{config_path}/"):
-    config_file = open(f"{config_path}/config.json", mode='r')
-else:
-    default_conf = {
-        "dns": "8.8.8.8",
-        "gpu": "VGA"
-    }
-    with open(f"{config_path}/config.json", mode='w') as file:
-        json.dump(default_conf, file)
-    config_file = open(f"{config_path}/config.json", mode='r')
-    pprint(f"[{NOTICE}]. config_file created!")
-    
-
-config = json.load(config_file)
-
 # Classes
 # --------------------------------------------------------------------
 class Options:
+    """
+    Argument Parser!
+    
+    1. Make option object:
+    
+        option = Option()
+    
+    2. Assign function to option object:
+    
+        - Decorate function with option object
+    
+            @option('-s')
+
+            def do_you_wanna_something_to_do():
+                ...
+            
+            @option('--switch')
+
+            def do_you_wanna_something_to_do():
+                ...
+            
+            @option('-s', '--switch')
+
+            def do_you_wanna_something_to_do():
+                ...
+            
+            @option('-s', '--switch', has_input=True, type_of_input=type)
+
+            def do_you_wanna_something_to_do(arg: type):
+                ...
+    
+        - Directly
+
+            option['- or -- switch'] = (function, has_input(True or False), type_of_input=(str, int, ...))
+
+            option['-s'] = (do_you_wanna_something_to_do)
+            
+            option['-s'] = (do_you_wanna_something_to_do, True, type)
+
+            option['--switch'] = (do_you_wanna_something_to_do)
+            
+            option['--switch'] = (do_you_wanna_something_to_do, True, type)
+    """
+
     __slots__ = "__option_list", "__option_method"
+
     def __init__(self):
         self.__option_list: List[str] = []
-        self.__option_method: Dict[str, Tuple[Callable, bool, int]] = {}
+        self.__option_method: Dict[str, Tuple[Callable[[Any], Any], bool, type]] = {}
 
     def __str__(self):
         table = Table()
         table.add_column('Switches')
         table.add_column('Methods')
         for switch, method in self.option_method.items():
-            table.add_row(switch, method.__name__)
+            table.add_row(switch, method[0].__name__)
         pprint(table)
         return '\r'
 
@@ -177,9 +177,9 @@ class Options:
         """
             switches: start with - or --.
             has_input: maybe the switches include the argument after them.
-            limit_of_args: numbers of arguments after switches and depends on has_input.
+            type_of_input: type of arguments after switch and depends on has_input.
         """
-        def __decorator__(func: Callable) -> Callable[[None], None]:
+        def __decorator__(func: Callable[[Any], Any]) -> Callable[[None], None]:
             for sw in switches:
                 goodbye(
                     sw in self.__option_method.keys(),
@@ -187,16 +187,26 @@ class Options:
                         sw, sw, self.__option_method.get(sw, (print,))[0].__name__
                     )
                 )
-                self[sw] = (func, has_input, type_of_input)
+                self.__option_method[sw] = (func, has_input, type_of_input)
+
             self.__option_list.extend(switches)
 
         return __decorator__
 
-    def __setitem__(self, key, value) -> None:
+    def __setitem__(self, key: str, value: tuple) -> None:
+        goodbye(
+            not ((not isinstance(value, tuple) or value.__len__() < 3) and callable(value[0])),
+            cause="""Bad value format.\nValid format:
+        option_obj['-s' or '--switch' or '-s --switch'] = (
+            function, # Should be Callable.
+            True or False, # If your function should get argument, set it True or not False.
+            type, # Set type of argument that will pass to function (str, int, ...).
+        )""",
+        )
         self.__option_method[key] = value
 
-    def __getitem__(self, key) -> Any:
-        return self.__option_method[key]
+    def __getitem__(self, key: str) -> Any:
+        return self.__option_method.get(key, None)
 
     def parse(self) -> Generator[Any, None, None]:
         for i, sw in enumerate(sys.argv, start=1):
@@ -237,7 +247,6 @@ class Options:
             goodbye(
                 type_of_input is None,
                 cause=f"Get type-of-arguments=({arg_input}) after [bold]{switch}[/bold]",
-                silent=True
             )
             try:
                 arg_input = type_of_input(arg_input)
@@ -245,7 +254,6 @@ class Options:
                 goodbye(
                     True,
                     cause=f"Gave bad-argument=({arg_input}) after [bold]{switch}[/bold]",
-                    silent=True
                 )
             return func(arg_input)
 
@@ -256,46 +264,6 @@ class Options:
     @property
     def option_method(self) -> Dict[str, str]:
         return self.__option_method
-
-# Options
-# -------------------------------------------------------------------
-option = Options()
-
-@option('-v', '--version')
-def do_you_wanna_see_version() -> None:
-    pprint(
-    f"""
-    ---===❰ [blink]  [gold1]Pacmanfetch[/gold1]  [/blink]❱===---
-    Version: {__version__}
-    Source: {__repo__}
-    """
-    )
-    sys.exit()
-
-@option('-d', '--delay', has_input=True, type_of_input=int)
-def do_you_wanna_typewriter_style(speed: int) -> None:
-    global pacman_delay
-    pacman_delay = speed
-
-@option('-p', '--pacman')
-def do_you_wanna_show_pacman() -> None:
-    global pacman
-    pacman = True
-
-@option('-i', '--ping')
-def do_you_wanna_ping() -> None:
-    global pacman_ping
-    pacman_ping = True
-
-@option('-c', '--config')
-def do_you_wanna_use_config() -> None:
-    global pacman_config
-    pacman_config = True
-
-@option('-h', '--help')
-def do_you_wanna_help() -> None:
-    pprint(HELP)
-    sys.exit()
 
 # Blocks
 # -------------------------------------------------------------------
@@ -345,6 +313,117 @@ BK = colors[14].format(F)
 COLOR_BANNER = """{}{}{}{}{}{}{}
            {}{}{}{}{}{}{}"""
 
+# Random Block color list
+# -------------------------------------------------------------------
+block_colors = [BR, BP, BO, BG, BC]
+shuffle(block_colors)
+
+# Variables
+# ---------------------------------------------------------------------
+pacman_delay = lambda x=[]: 0
+pacman_ping = False
+pacman_config = False
+INFO = '[green]Info[/green]'
+NOTICE = '[purple]Notice[/purple]'
+WARNING = '[dark_orange]Warning[/dark_orange]'
+ERROR = '[red]Error[/red]'
+EXEC_ERROR = 'OS or Permission Error Occurred for Get {} Info'
+threads: List[Thread] = []
+outputs: Dict[str, str] = {
+    'OS': '',
+    'Kernel': '',
+    'CPU': '',
+    'GPU': '',
+    'Display': '',
+    'Memory': '',
+    'Swap': '',
+    'Disk': '',
+    'Network': '',
+    'UpTime': '',
+}
+limit = len(block_colors) + 1
+max_width = os.get_terminal_size().columns // 29 # width of ghost
+max_ghost = limit if max_width >= limit else max_width # How many ghost can place on terminal
+config: Dict[str, str] = {}
+rand_waits: List[int] = [0, 0, 0, 0, 0, 69, 69, 69, 69, 0, 0, 0, 0, 0]
+
+# Options
+# -------------------------------------------------------------------
+option = Options()
+
+@option('-v', '--version')
+def do_you_wanna_see_version() -> None:
+    pprint(
+    f"""
+    ---===❰ [blink]  [gold1]Pacmanfetch[/gold1]  [/blink]❱===---
+    Version: {__version__}
+    Source: {__repo__}
+    """
+    )
+
+
+@option('-d', '--delay', has_input=True, type_of_input=int)
+def do_you_wanna_typewriter_style(speed: int) -> None:
+    global pacman_delay
+    if not speed:
+        pacman_delay = random.choice
+    else: pacman_delay = lambda x=[]: speed
+
+
+@option('-p', '--pacman')
+def do_you_wanna_show_pacman() -> None:
+    ghost_buffer = "{}" * max_ghost 
+    for n in range(H + 1):
+        pprint(ghost_buffer.format(
+            PACMAN.split('\n')[n].replace('▒', ' '),
+                *(
+                    GHOST.split('\n')[n] \
+                        .replace('▒', ' ') \
+                        .replace(F, block_colors[i]) \
+                        .replace('@', BW) \
+                        .replace('#', BK) \
+                        for i in range(max_ghost - 1)
+                ),
+            )
+        )
+        sleep(pacman_delay(rand_waits) / 369)
+
+
+@option('-i', '--ping')
+def do_you_wanna_ping() -> None:
+    global pacman_ping
+    pacman_ping = True
+
+
+@option('-c', '--config')
+def do_you_wanna_use_config() -> None:
+    global pacman_config, config
+    pacman_config = True
+
+    config_path = os.path.dirname(os.path.abspath(__file__))
+    if "config.json" in os.listdir(f"{config_path}/"):
+        config_file = open(f"{config_path}/config.json", mode='r')
+    else:
+        default_conf = {
+            "dns": "8.8.8.8",
+            "gpu": "VGA"
+        }
+        with open(f"{config_path}/config.json", mode='w') as file:
+            json.dump(default_conf, file)
+        config_file = open(f"{config_path}/config.json", mode='r')
+        pprint(f"[{NOTICE}]. config_file created!")
+
+    config = json.load(config_file)
+    
+    config_file.close()
+
+
+@option('-h', '--help')
+def do_you_wanna_help() -> None:
+    pprint(HELP)
+    sys.exit()
+
+
 # OS logos
 # -------------------------------------------------------------------
 # OS_name = os.uname()[3].split()[0].split('-')[1].lower()
@@ -364,18 +443,12 @@ OS_logos = {
     'gentoo': ' '
 }
 
-# Random Block color list
-# -------------------------------------------------------------------
-block_colors = [BR, BP, BO, BG, BC]
-shuffle(block_colors)
-limit = len(block_colors) + 1
-
 # CPU Brand:
 # -------------------------------------------------------------------
 AMD = '[red]AMD[/red]:'
 Intel = '[blue]Intel[/blue]'
 
-# System info
+# System Info Structure
 # -------------------------------------------------------------------
 system_info_colors: List[str] = [
     'red',                  # os
@@ -403,7 +476,12 @@ system_info_title: List[str] = [
     '        UpTime    │', # uptime
 ]
 
-NODE = "[white] {}%  [/white][yellow2] {}[/yellow2][red]@[/red][cyan]{}[/cyan]"
+NODE = "[white] {0}[bold]{1}[/bold]  [/white][yellow2] {2}[/yellow2][red]@[/red][cyan]{3}[/cyan]"
+
+shell_symbols: Dict[str, str] = {
+    'zsh': '%',
+    'bash': '$',
+}
 
 # IP addresses
 # -------------------------------------------------------------------
@@ -444,69 +522,76 @@ GHOST = """
 ▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒
 """
 
+
 def cpu() -> str:
     cpu_info = ''
-    cmd = 'cat /proc/cpuinfo'
+    cpu_freq = 0.0
+    cmd = 'lscpu'
     all_info = subprocess.check_output(cmd, shell=True).decode().strip()
     for line in all_info.split('\n'):
-        if 'model name' in line:
-            cpu_info = ''.join(re.sub(r".*model name.*:", '', line)).replace('CPU @ ', '').strip()
-            break
-        elif 'Hardware' in line:
-            cpu_info = ''.join(re.sub(r"(.*Hardware.*:)|(\(.*\))", '', line)).strip()
+        if re.search('Model name', line):
+            cpu_info = ''.join(re.sub(r".*Model name.*: *", '', line)).replace('CPU @ ', '')
+
+        elif re.search('CPU max MHz', line):
+            cpu_freq = float(''.join(re.sub(r".*CPU max MHz.*: *", '', line))) / 1000
             break
 
-    outputs['CPU'] = f" {cpu_info} {psutil.cpu_count()} Cores"
+    outputs['CPU'] = f" {cpu_info} {psutil.cpu_count()} Cores {cpu_freq:.1f} GHz"
     return outputs['CPU']
 
-@exception_handler(RuntimeWarning, PermissionError, OSError)
+
+@exception_handler(RuntimeWarning, PermissionError, OSError, cause=EXEC_ERROR.format('Memory'))
 def ram() -> str:
     mem = psutil.virtual_memory()
-    usage = round(mem.percent)
-    used = round(mem.used / (1024 ** 3), 1)
-    total = round(mem.total / (1024 ** 3), 1)
+    usage = f"{mem.percent:.1f}"
+    used = f"{mem.used / (1024 ** 3):.1f}"
+    total = f"{mem.total / (1024 ** 3):.1f}"
 
     outputs['Memory'] = f" {used} GB / {total} GB usage: {usage}%"
     return outputs['Memory']
 
-@exception_handler(RuntimeWarning, PermissionError, OSError)
+
+@exception_handler(RuntimeWarning, PermissionError, OSError, cause=EXEC_ERROR.format('Swap'))
 def swap() -> str:
     swap = psutil.swap_memory()
-    usage = round(swap.percent)
-    used = round(swap.used / (1024 ** 3), 1)
-    total = round(swap.total / (1024 ** 3), 1)
+    usage = f"{swap.percent:.1f}"
+    used = f"{swap.used / (1024 ** 3):.1f}"
+    total = f"{swap.total / (1024 ** 3):.1f}"
 
     outputs['Swap'] = f" {used} GB / {total} GB usage: {usage}%"
     return outputs['Swap']
 
-@exception_handler(RuntimeWarning, PermissionError, OSError)
+
+@exception_handler(RuntimeWarning, PermissionError, OSError, cause=EXEC_ERROR.format('Disk'))
 def disk() -> str:
     home = psutil.disk_usage('/home')
-    home_total = round(home.total / (1024 ** 3), 1)
-    home_free = round(home.free / (1024 ** 3), 1)
+    home_total = f"{home.total / (1024 ** 3):.1f}"
+    home_free = f"{home.free / (1024 ** 3):.1f}"
 
     root = psutil.disk_usage('/')
-    root_total = round(root.total / (1024 ** 3), 1)
-    root_free = round(root.free / (1024 ** 3), 1)
+    root_total = f"{root.total / (1024 ** 3):.1f}"
+    root_free = f"{root.free / (1024 ** 3):.1f}"
     
     outputs['Disk'] = f" Root({root_total} GB) free: {root_free} GB │ Home({home_total} GB) free: {home_free} GB"
     return outputs['Disk']
 
+
 def ping() -> str:
-    cmd = f"ping -c 1 {config['dns']}"
+    dns = config.get('dns', '8.8.8.8')
+    cmd = f"ping -c 1 {dns}"
     try:
         if not ifaces_addr:
-            return f" 999ms   {config['dns']}"
+            return f" 999ms   {dns}"
         else:
             with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE) as ping_proc:
                 stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
                 time = re.findall(r"time=.*ms", stdout)[0].replace('time=', '')
-                return f" {time}   {config['dns']}"
+                return f" {time}   {dns}"
     except Exception:
-        return f" 999ms   {config['dns']}"
+        return f" 999ms   {dns}"
+
 
 @threader(daemon=pacman_ping)
-# @exception_handler(RuntimeWarning, PermissionError, OSError)
 def network() -> str:
     try:
         net_ifaces = psutil.net_if_addrs()
@@ -532,6 +617,7 @@ def network() -> str:
 
         outputs['Network'] = f" {iface_buffer} {ping() if pacman_ping else ''}"
         return outputs['Network']
+
 
 @threader(daemon=pacman_config)
 def gpu() -> str:
@@ -590,13 +676,16 @@ def gpu() -> str:
     outputs['GPU'] = f" {gpu_info}"
     return outputs['GPU']
 
+
 def operate() -> str:
     outputs['OS'] = f" {OS_name.title()} {OS_version}"
     return outputs['OS']
 
+
 def kernel() -> str:
     outputs['Kernel'] = f" {os.uname()[2]}"
     return outputs['Kernel']
+
 
 def display() -> str:
     try:
@@ -621,13 +710,16 @@ def display() -> str:
         outputs['Display'] = '│'.join(displays)
         return outputs['Display']
 
+
 def node() -> str:
     global D
     shell = os.environ.get('SHELL').split('/')[-1]
+    shell_symbol = shell_symbols.get(shell, '#')
     user = os.environ.get('USER')
     host = os.uname()[1]
     D = len(shell) + len(user) + len(host)
-    return NODE.format(shell, user, host)
+    return NODE.format(shell, shell_symbol, user, host)
+
 
 def uptime() -> str:
     system_up = round(time() - psutil.boot_time())
@@ -637,34 +729,17 @@ def uptime() -> str:
     outputs['UpTime'] = f" {hours}h {minutes}m {seconds}s"
     return outputs['UpTime']
 
+
 @exception_handler(IndexError, cause=f"Not enough arguments")
 @exception_handler(KeyboardInterrupt, cause=f"Ctrl+C", do_this=sys.exit)
 def main() -> None:
-    max_width = os.get_terminal_size().columns // 29 # 29 = width of ghost
-    max_ghost = limit if max_width >= limit else max_width # How many ghost can place on terminal
+    global config
+
+    clear()
 
     # Argument parsing
     # -------------------------------------------------------------------
     for _ in option.parse(): ...
-
-    # Draw pacman & ghosts
-    # -------------------------------------------------------------------
-    if pacman:
-        ghost_buffer = "{}" * max_ghost 
-        for n in range(H + 1):
-            pprint(ghost_buffer.format(
-                PACMAN.split('\n')[n].replace('▒', ' '),
-                    *(
-                        GHOST.split('\n')[n] \
-                            .replace('▒', ' ') \
-                            .replace(F, block_colors[i]) \
-                            .replace('@', BW) \
-                            .replace('#', BK) \
-                            for i in range(max_ghost - 1)
-                    ),
-                )
-            )
-            sleep(pacman_delay / 1000)
 
     # Draw system info
     # -------------------------------------------------------------------
@@ -681,10 +756,6 @@ def main() -> None:
     uptime()
     # ]
 
-    config_file.close()
-    
-    # clear()
-
     pprint(f"""
         {node()}
         {'─' * (int(D // 2) - 2)}── {MINI_PACMAN}{'─' * (int(D // 2) - 1)}""")
@@ -699,10 +770,10 @@ def main() -> None:
         else:
             for char in title: # Type titles with color
                 pprint(f"[{color}]{char}[/{color}]", end='')
-                sleep(pacman_delay / 1000)
+                sleep(pacman_delay(rand_waits) / 3333)
             for char in details: # Type details without color
                 pprint(f"{char}", end='')
-                sleep(pacman_delay / 1000)
+                sleep(pacman_delay(rand_waits) / 3333)
             print()
 
     pprint(f"""        {'─' * (int(D // 2) - 2)}── {MINI_PACMAN}{'─' * (int(D // 2) - 1)}
