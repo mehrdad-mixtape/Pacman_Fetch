@@ -14,30 +14,38 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.8.0-{BETA}"
+__version__ = f"v0.8.2-{BETA}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
 Github repo: https://github.com/sebastiencs/icons-in-terminal """
 
+import os, subprocess, re, sys, json, random
 from typing import Tuple, List, Dict, Generator, Callable, Any
 from time import sleep, time
-from rich.console import Console
-from rich.table import Table
-from rich import pretty, traceback
-from threading import Thread
-pretty.install()
-traceback.install()
-from random import shuffle, choice
-import os, subprocess, re, sys, psutil, json, distro, random
+
+try:
+    import psutil, distro
+    from rich.console import Console
+    from rich.table import Table
+    from rich import pretty, traceback
+    from threading import Thread
+
+except ImportError as E:
+    print(f"[*] Error. {E} - Please Install the Pkgs.")
+    sys.exit()
+
+else:
+    pretty.install()
+    traceback.install()
 
 #TODO: Improve Option, "pacmanfetch -pi -v -d 10" != "pacmanfetch -d 10 -pi -v"
 
 # Banners
 # -------------------------------------------------------------------
-MAIN_BANNER = """[blink]┌───────────────────┐
+MAIN_BANNER = """[bold][blink]┌───────────────────┐
            │   Pacmanfetch   │
-           └───────────────────┘[/blink]"""
+           └───────────────────┘[/blink][/bold]"""
 
 HELP = f"""
 Intro:
@@ -66,6 +74,7 @@ pprint = lambda *args, **kwargs: Console().print(*args, **kwargs)
 def clear() -> None:
     print('\033c', end='')
 
+
 def goodbye(expression: bool, cause: str='Unknown'):
     if expression:
         pprint(f"[{ERROR}]. {cause}")
@@ -88,6 +97,7 @@ def exception_handler(*exceptions, cause: str='', do_this: Callable=sys.exit) ->
                 return results
         return __wrapper__
     return __decorator__
+
 
 def threader(daemon: bool=False) -> Callable[[Callable], Any]:
     def __decorator__(func: Callable) -> Callable[[Any], Any]:
@@ -160,6 +170,7 @@ class Options:
         self.__option_list: List[str] = []
         self.__option_method: Dict[str, Tuple[Callable[[Any], Any], bool, type]] = {}
 
+
     def __str__(self):
         table = Table()
         table.add_column('Switches')
@@ -168,6 +179,7 @@ class Options:
             table.add_row(switch, method[0].__name__)
         pprint(table)
         return '\r'
+
 
     def __call__(
             self, *switches: str,
@@ -193,6 +205,7 @@ class Options:
 
         return __decorator__
 
+
     def __setitem__(self, key: str, value: tuple) -> None:
         goodbye(
             not ((not isinstance(value, tuple) or value.__len__() < 3) and callable(value[0])),
@@ -204,6 +217,7 @@ class Options:
         )""",
         )
         self.__option_method[key] = value
+
 
     def __getitem__(self, key: str) -> Any:
         return self.__option_method.get(key, None)
@@ -231,6 +245,7 @@ class Options:
                 e_sw = f"-{chr}" # esw = extracted_switch
                 yield self.__switch_executer(e_sw, i)
 
+
     def __switch_executer(self, switch: str, switch_index: int) -> None:
         try:
             func, has_input, type_of_input = self.option_method[switch]
@@ -257,9 +272,11 @@ class Options:
                 )
             return func(arg_input)
 
+
     @property
     def option_list(self) -> List[str]:
         return self.__option_list
+
 
     @property
     def option_method(self) -> Dict[str, str]:
@@ -282,21 +299,21 @@ D = 0
 # Color list
 # -------------------------------------------------------------------
 colors: Tuple[str] = (
-    "[red]{}[/red]", #0
-    "[purple]{}[/purple]", #1
-    "[dark_orange]{}[/dark_orange]", #2
-    "[chartreuse3]{}[/chartreuse3]", #3
-    "[cyan]{}[/cyan]", #4
-    "[hot_pink]{}[/hot_pink]", #5
-    "[orange4]{}[/orange4]", #6
-    "[dark_cyan]{}[/dark_cyan]", #7
-    "[grey74]{}[/grey74]", #8
-    "[slate_blue3]{}[/slate_blue3]", #9
-    "[medium_violet_red]{}[/medium_violet_red]", #10
-    "[gold1]{}[/gold1]", #11
-    "[sea_green1]{}[/sea_green1]", #12
-    "[white]{}[/white]", #13
-    "[black]{}[/black]", #14
+    "[red]{}[/red]",                                #0
+    "[purple]{}[/purple]",                          #1
+    "[dark_orange]{}[/dark_orange]",                #2
+    "[chartreuse3]{}[/chartreuse3]",                #3
+    "[cyan]{}[/cyan]",                              #4
+    "[hot_pink]{}[/hot_pink]",                      #5
+    "[orange4]{}[/orange4]",                        #6
+    "[dark_cyan]{}[/dark_cyan]",                    #7
+    "[grey74]{}[/grey74]",                          #8
+    "[slate_blue3]{}[/slate_blue3]",                #9
+    "[medium_violet_red]{}[/medium_violet_red]",    #10
+    "[gold1]{}[/gold1]",                            #11
+    "[sea_green1]{}[/sea_green1]",                  #12
+    "[white]{}[/white]",                            #13
+    "[black]{}[/black]",                            #14
 )
 
 # Colorful blocks
@@ -316,7 +333,7 @@ COLOR_BANNER = """{}{}{}{}{}{}{}
 # Random Block color list
 # -------------------------------------------------------------------
 block_colors = [BR, BP, BO, BG, BC]
-shuffle(block_colors)
+random.shuffle(block_colors)
 
 # Variables
 # ---------------------------------------------------------------------
@@ -476,7 +493,7 @@ system_info_title: List[str] = [
     '        UpTime    │', # uptime
 ]
 
-NODE = "[white] {0}[bold]{1}[/bold]  [/white][yellow2] {2}[/yellow2][red]@[/red][cyan]{3}[/cyan]"
+NODE = "[bold][white] {0}{1}  [/white][yellow2] {2}[/yellow2][red]@[/red][cyan]{3}[/cyan][/bold]"
 
 shell_symbols: Dict[str, str] = {
     'zsh': '%',
@@ -536,7 +553,11 @@ def cpu() -> str:
             cpu_freq = float(''.join(re.sub(r".*CPU max MHz.*: *", '', line))) / 1000
             break
 
-    outputs['CPU'] = f" {cpu_info} {psutil.cpu_count()} Cores {cpu_freq:.1f} GHz"
+    if 'AMD' in cpu_info:
+        outputs['CPU'] = f" {cpu_info} {psutil.cpu_count()} Cores {cpu_freq:.1f} GHz"
+    else:
+        outputs['CPU'] = f" {cpu_info} {psutil.cpu_count()} Cores"
+
     return outputs['CPU']
 
 
@@ -587,6 +608,7 @@ def ping() -> str:
                 stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
                 time = re.findall(r"time=.*ms", stdout)[0].replace('time=', '')
                 return f" {time}   {dns}"
+
     except Exception:
         return f" 999ms   {dns}"
 
@@ -694,18 +716,20 @@ def display() -> str:
         if not all_info[0]:
             outputs['Display'] = TTY
             return TTY
+
     except FileNotFoundError:
         outputs['Display'] = TTY
         return TTY
+
     else:
         displays = []
-        for info in all_info:
+        for i, info in enumerate(all_info, start=1):
             resolution = info.split()[0]
             max_refresh_rate = max(
                 [re.sub(r"(\*\+)|(\*)", '', ref) for ref in info.split()[1:]],
                 key=len
             )
-            displays.append(f" {resolution} {max_refresh_rate}Hz ")
+            displays.append(f" DP-{i}({resolution} {max_refresh_rate}Hz) ")
 
         outputs['Display'] = '│'.join(displays)
         return outputs['Display']
@@ -717,6 +741,7 @@ def node() -> str:
     shell_symbol = shell_symbols.get(shell, '#')
     user = os.environ.get('USER')
     host = os.uname()[1]
+
     D = len(shell) + len(user) + len(host)
     return NODE.format(shell, shell_symbol, user, host)
 
@@ -726,6 +751,7 @@ def uptime() -> str:
     hours = system_up // 60 // 60
     minutes = system_up // 60 % 60
     seconds = system_up % 60
+
     outputs['UpTime'] = f" {hours}h {minutes}m {seconds}s"
     return outputs['UpTime']
 
@@ -779,7 +805,7 @@ def main() -> None:
     pprint(f"""        {'─' * (int(D // 2) - 2)}── {MINI_PACMAN}{'─' * (int(D // 2) - 1)}
 
           {COLOR_BANNER.format(*[color.format(F * 3) for color in colors])}
-           {choice(colors).format(MAIN_BANNER)}""")
+           {random.choice(colors).format(MAIN_BANNER)}""")
 
 if __name__ == '__main__':
     main()
