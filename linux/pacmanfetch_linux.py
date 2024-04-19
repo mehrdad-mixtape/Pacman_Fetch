@@ -14,7 +14,7 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.8.2-{BETA}"
+__version__ = f"v0.9.0-{BETA}"
 
 """ Pacman Fetch!
 For Better Experience Install icon-in-terminal:
@@ -363,6 +363,7 @@ max_width = os.get_terminal_size().columns // 29 # width of ghost
 max_ghost = limit if max_width >= limit else max_width # How many ghost can place on terminal
 config: Dict[str, str] = {}
 rand_waits: List[int] = [0, 0, 0, 0, 0, 69, 69, 69, 69, 0, 0, 0, 0, 0]
+progress_length = 20
 
 # Options
 # -------------------------------------------------------------------
@@ -372,7 +373,7 @@ option = Options()
 def do_you_wanna_see_version() -> None:
     pprint(
     f"""
-    ---===❰ [blink]  [gold1]Pacmanfetch[/gold1]  [/blink]❱===---
+    ---===❰ [blink]  [gold1]Pacmanfetch[/gold1]  [/blink] ❱===---
     Version: {__version__}
     Source: {__repo__}
     """
@@ -443,12 +444,10 @@ def do_you_wanna_help() -> None:
 
 # OS logos
 # -------------------------------------------------------------------
-# OS_name = os.uname()[3].split()[0].split('-')[1].lower()
-# OS_version = os.uname()[3].split()[0].split('-')[0].split('~')[1]
 OS_name = distro.id()
 OS_version = distro.version(pretty=True, best=True)
 
-TTY = f" {os.ttyname(sys.stdout.fileno())}"
+TTY = f" Term-({os.ttyname(sys.stdout.fileno())})"
 
 OS_logos = {
     # It is not compatible for all os, because of icon-fonts.
@@ -472,7 +471,7 @@ system_info_colors: List[str] = [
     'sea_green1',           # kernel
     'dark_orange',          # cpu
     'medium_violet_red',    # gpu
-    'slate_blue3',          # resolution
+    'slate_blue3',          # display
     'grey74',               # ram
     'hot_pink',             # swap
     'gold1',                # disk
@@ -555,6 +554,7 @@ def cpu() -> str:
 
     if 'AMD' in cpu_info:
         outputs['CPU'] = f" {cpu_info} {psutil.cpu_count()} Cores {cpu_freq:.1f} GHz"
+
     else:
         outputs['CPU'] = f" {cpu_info} {psutil.cpu_count()} Cores"
 
@@ -564,22 +564,28 @@ def cpu() -> str:
 @exception_handler(RuntimeWarning, PermissionError, OSError, cause=EXEC_ERROR.format('Memory'))
 def ram() -> str:
     mem = psutil.virtual_memory()
-    usage = f"{mem.percent:.1f}"
-    used = f"{mem.used / (1024 ** 3):.1f}"
-    total = f"{mem.total / (1024 ** 3):.1f}"
+    usage = round(mem.percent)
+    total = round(mem.total / (1000 ** 3), 1)
+    used =  round(abs(total - mem.available / (1000 ** 3)), 1)
 
-    outputs['Memory'] = f" {used} GB / {total} GB usage: {usage}%"
+    pu = usage * progress_length // 100
+    pr = progress_length - pu
+
+    outputs['Memory'] = f" Usage: {usage}% [{'=' * pu}{'-' * pr}] =~ {used}GB / {total}GB"
     return outputs['Memory']
 
 
 @exception_handler(RuntimeWarning, PermissionError, OSError, cause=EXEC_ERROR.format('Swap'))
 def swap() -> str:
     swap = psutil.swap_memory()
-    usage = f"{swap.percent:.1f}"
-    used = f"{swap.used / (1024 ** 3):.1f}"
-    total = f"{swap.total / (1024 ** 3):.1f}"
+    usage = round(swap.percent)
+    total = round(swap.total / (1000 ** 3), 1)
+    used = round(abs(total - swap.free / (1000 ** 3)), 1)
+    
+    pu = usage * progress_length // 100
+    pr = progress_length - pu
 
-    outputs['Swap'] = f" {used} GB / {total} GB usage: {usage}%"
+    outputs['Swap'] = f" Usage: {usage}% [{'=' * pu}{'-' * pr}] =~ {used}GB / {total}GB"
     return outputs['Swap']
 
 
@@ -593,7 +599,7 @@ def disk() -> str:
     root_total = f"{root.total / (1024 ** 3):.1f}"
     root_free = f"{root.free / (1024 ** 3):.1f}"
     
-    outputs['Disk'] = f" Root({root_total} GB) free: {root_free} GB │ Home({home_total} GB) free: {home_free} GB"
+    outputs['Disk'] = f""" Root({root_total} GB) free: {root_free} GB │ Home({home_total} GB) free: {home_free} GB"""
     return outputs['Disk']
 
 
@@ -619,13 +625,13 @@ def network() -> str:
         net_ifaces = psutil.net_if_addrs()
 
         for interface_name, interface_addresses in net_ifaces.items():
-            if interface_name.startswith(('w', 'e', 'u', 't', 'n')):
-                for address in interface_addresses:
-                    if address.family.name == 'AF_INET': # AF_INET = IPv4, AF_INET6 = IPv6
-                        if interface_name.startswith(('t', 'n')):
-                            ifaces_addr.insert(0, f"VPN  │")
-                        else:
-                            ifaces_addr.append(f"{interface_name}   {address.address} │")
+            for address in filter(lambda addr: addr.family.name == "AF_INET", interface_addresses):
+                if interface_name.startswith(('t', 'n', 'wg')):
+                    ifaces_addr.insert(0, f"VPN  │")
+
+                elif interface_name.startswith(('w', 'e', 'u', 'd')):
+                    ifaces_addr.append(f"{interface_name}   {address.address} │")
+
     except (RuntimeWarning, PermissionError, OSError):
         outputs['Network'] = f" Check your   Connections {ping() if pacman_ping else ''}"
         return outputs['Network']
@@ -633,6 +639,7 @@ def network() -> str:
     if not ifaces_addr:
         outputs['Network'] = f" Check your   Connections {ping() if pacman_ping else ''}"
         return outputs['Network']
+
     else:
         iface_buffer = "{} " * len(ifaces_addr)
         iface_buffer = iface_buffer.format(*ifaces_addr).strip(' │')
@@ -649,20 +656,22 @@ def gpu() -> str:
         gpu_info = config["gpu"]
         outputs['GPU'] = f" {gpu_info}"
         return outputs['GPU']
-        
+
     def finder(brand: Dict[str, List[str]]) -> Generator[str, None, None]:
         patterns = {
-            'AMD': r"\[.*\] Rembrandt",
+            'AMD': r"\[AMD/ATI\] [a-zA-Z]*/?[a-zA-Z]*",
             'Intel': r"(U?HD Graphics [0-9]*?$)|(Iris Xe Graphics.*)",
-            'NVIDIA': r"\[.*\]"
+            'NVIDIA': r"\[.*\].*"
         }
         for name, gpus in brand.items():
             for gpu in gpus:
                 try:
-                    temp = re.search(patterns.get(name, r".*"), gpu)\
+                    temp = re.search(patterns.get(name, r".*"), gpu) \
                         .group().replace('[', '').replace(']', '')
+
                 except Exception:
                     yield ""
+
                 else:
                     yield f"{temp} │ "
 
@@ -674,24 +683,27 @@ def gpu() -> str:
     ).stdout.decode('utf-8')
 
     amd: Dict[str, List[str]] = {'AMD': [
-        *re.findall(r"VGA.*(Advanced Micro Devices.*AMD.*) \(.*", stdout),
-        *re.findall(r"3D.*(Advanced Micro Devices.*AMD.*) \(.*", stdout),
+        *re.findall(r"VGA.*(\[AMD/ATI\].*) \(", stdout),
+        *re.findall(r"3D.*(\[AMD/ATI\].*) \(", stdout),
+        #*re.findall(r"Display.*(\[AMD/ATI\].*) \(", "Display controller [0830]: Advance, Inc. [AMD/ATI] lexa pro [Radeon RX 550/550X] [123:123] (rev c3)"),
+        #"[AMD/ATI] Picasso/Raven 2 [Radeon Vega Series / Radeon Vega Mobile Series] (rev d2)",
+        #"[AMD/ATI] Rembrandt (rev c8)",
     ]}
     intel: Dict[str, List[str]] = {'Intel': [
-        *re.findall(r"VGA.*(Intel.*) \(.*", stdout),
-        *re.findall(r"3D.*(Intel.*) \(.*", stdout),
+        *re.findall(r"VGA.*(Intel.*) \(", stdout),
+        *re.findall(r"3D.*(Intel.*) \(", stdout),
     ]}
     nvidia: Dict[str, List[str]] = {'NVIDIA': [
-        *re.findall(r"VGA.*(NVIDIA.*) \(.*", stdout),
-        *re.findall(r"3D.*(NVIDIA.*) \(.*", stdout),
+        *re.findall(r"VGA.*(NVIDIA.*) \(", stdout),
+        *re.findall(r"3D.*(NVIDIA.*) \(", stdout),
     ]}
 
     for brand in [amd, intel, nvidia]:
         for gpu in finder(brand):
             gpu_info += gpu
-    
+
     if not gpu_info:
-        gpu_info = config["gpu"]
+        gpu_info = "Not Detected ..."
     else:
         gpu_info = gpu_info.strip('│ ')
 
@@ -712,7 +724,10 @@ def kernel() -> str:
 def display() -> str:
     try:
         cmd = "xrandr | awk 'match($0,/[0-9]*\.[0-9]*\*/)'"
-        all_info = subprocess.check_output(cmd, shell=True).decode().strip().split('\n')
+        all_info = subprocess.check_output(
+            cmd, shell=True, stderr=subprocess.DEVNULL
+        ).decode().strip().split('\n')
+
         if not all_info[0]:
             outputs['Display'] = TTY
             return TTY
@@ -737,12 +752,13 @@ def display() -> str:
 
 def node() -> str:
     global D
+
     shell = os.environ.get('SHELL').split('/')[-1]
     shell_symbol = shell_symbols.get(shell, '#')
     user = os.environ.get('USER')
     host = os.uname()[1]
 
-    D = len(shell) + len(user) + len(host)
+    D = len(shell + user + host)
     return NODE.format(shell, shell_symbol, user, host)
 
 
@@ -791,8 +807,10 @@ def main() -> None:
             # details = system_info_details.pop(0)
             details = outputs[hw]
             title = system_info_title.pop(0)
+
         except IndexError:
             break
+
         else:
             for char in title: # Type titles with color
                 pprint(f"[{color}]{char}[/{color}]", end='')
