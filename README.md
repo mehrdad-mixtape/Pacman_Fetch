@@ -15,9 +15,10 @@
 - **Linux**
 - **WSL: Windows Sub System(recommended)**
 	- **Windows terminal** app is better than powershell and cmd
-- **Mac?** Test and tell me result ;)
+- **Mac?** Test and show me the results ;)
 
 ## Font:
+If you wanna use (version < 1.0.0) do 1,2 steps, otherwise skip them.
 icon_in_terminal project [github](https://github.com/sebastiencs/icons-in-terminal) link
 1. requierment package:
 	- Debian:
