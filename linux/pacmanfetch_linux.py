@@ -14,11 +14,11 @@ BETA = "[red]beta[/red]"
 STABLE = "[green]stable[/green]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v0.9.0-{BETA}"
+__version__ = f"v1.0.0-{BETA}"
 
 """ Pacman Fetch!
-For Better Experience Install icon-in-terminal:
-Github repo: https://github.com/sebastiencs/icons-in-terminal """
+For Better Experience Install NerdFont:
+https://www.nerdfonts.com/ """
 
 import os, subprocess, re, sys, json, random
 from typing import Tuple, List, Dict, Generator, Callable, Any
@@ -41,16 +41,35 @@ else:
 
 #TODO: Improve Option, "pacmanfetch -pi -v -d 10" != "pacmanfetch -d 10 -pi -v"
 
+# Icons
+GITHUB = '\uf113'
+PYTHON = '\ue235'
+HEART = '\uf004'
+CPU = '\uf4bc'
+BRAIN = '\ue28c'
+LEGO = '\ue0ce'
+SCREEN = '\ueb4c'
+MEMORY = '\ue266'
+SWAP = '\ue238'
+DISK = '\ue240'
+NETWORK = '\ueb3a'
+UPTIME = '\uf0f4'
+PING = '\uf0ec'
+LINUX = '\uebc6'
+HOTDOG = '\ue251'
+DICE = '\ue270'
+HAMBURGER = '\ue24d'
+
 # Banners
 # -------------------------------------------------------------------
-MAIN_BANNER = """[bold][blink]┌───────────────────┐
-           │   Pacmanfetch   │
-           └───────────────────┘[/blink][/bold]"""
+MAIN_BANNER = f"""[bold][blink] ┌─────────────────┐
+            │ {PYTHON} Pacmanfetch {GITHUB} │
+            └─────────────────┘[/blink][/bold]"""
 
 HELP = f"""
 Intro:
     Fetch your system!
-    ---===❰ [blink]  [gold1]Pacmanfetch[/gold1]   [/blink] ❱===---
+    ────===❰ [blink]{PYTHON} [gold1]Pacmanfetch[/gold1] {GITHUB} [/blink] ❱===────
 
 Helps:
     [bold][red]-d --delay[/red][/bold]: Get delay to show you typewriter style
@@ -373,7 +392,7 @@ option = Options()
 def do_you_wanna_see_version() -> None:
     pprint(
     f"""
-    ---===❰ [blink]  [gold1]Pacmanfetch[/gold1]  [/blink] ❱===---
+    ────===❰ [blink]{PYTHON} [gold1]Pacmanfetch[/gold1] {GITHUB} [/blink] ❱===────
     Version: {__version__}
     Source: {__repo__}
     """
@@ -451,12 +470,13 @@ TTY = f" Term-({os.ttyname(sys.stdout.fileno())})"
 
 OS_logos = {
     # It is not compatible for all os, because of icon-fonts.
-    'nixos': ' ', 'ubuntu': ' ', 'debian': ' ',
-    'raspbian': ' ', 'elementary': ' ', 'mint': ' ',
-    'centos': ' ', 'fedora': ' ', 'redhat': ' ',
-    'arch': ' ', 'manjaro': ' ', 'suse': ' ',
-    'slackware': ' ', 'alpine': ' ', 'bsd': ' ',
-    'gentoo': ' '
+    'nixos': '\uf313', 'ubuntu': '\uf31b', 'debian': '\uf306',
+    'raspbian': '\uf315', 'elementary': '\uf309', 'mint': '\uf30e',
+    'centos': '\uf304', 'fedora': '\uf30a', 'redhat': '\uf316',
+    'arch': '\uf303', 'manjaro': '\uf312', 'opensuse': '\uf314',
+    'slackware': '\uf319', 'alpine': '\uf300', 'bsd': '\uf30c',
+    'gentoo': '\uf30d', 'kali': '\uf327', 'deepin': '\uf321',
+    'garuda': '\uf337'
 }
 
 # CPU Brand:
@@ -472,7 +492,7 @@ system_info_colors: List[str] = [
     'dark_orange',          # cpu
     'medium_violet_red',    # gpu
     'slate_blue3',          # display
-    'grey74',               # ram
+    'grey74',               # memory
     'hot_pink',             # swap
     'gold1',                # disk
     'dark_cyan',            # network
@@ -480,19 +500,19 @@ system_info_colors: List[str] = [
 ]
 
 system_info_title: List[str] = [
-    f"        OS {OS_logos.get(OS_name, ' ')}      │", # os
-    '        Kernel    │', # kernel
-    '        CPU       │', # cpu
-    '        GPU       │', # gpu
-    '        Display   │', # resolution
-    '        Memory    │', # ram
-    '        Swap      │', # swap
-    '        Disk      │', # disk
-    '        Network   │', # network
-    '        UpTime    │', # uptime
+    f"        ▒ OS {OS_logos.get(OS_name, LINUX)}      ▒", # os
+    f"        ▒ Kernel {HEART}  ▒", # kernel
+    f"        ▒ CPU {BRAIN}     ▒", # cpu
+    f"        ▒ GPU {LEGO}     ▒", # gpu
+    f"        ▒ Display {SCREEN} ▒", # resolution
+    f"        ▒ Memory {MEMORY}  ▒", # memory
+    f"        ▒ Swap {SWAP}    ▒", # swap
+    f"        ▒ Disk {DISK}    ▒", # disk
+    f"        ▒ Network {NETWORK} ▒", # network
+    f"        ▒ UpTime {UPTIME}  ▒", # uptime
 ]
 
-NODE = "[bold][white] {0}{1}  [/white][yellow2] {2}[/yellow2][red]@[/red][cyan]{3}[/cyan][/bold]"
+NODE = "[bold][white]\ue683 {0}{1}  [/white][yellow2]\ue23f {2}[/yellow2][red]@[/red][cyan]{3}[/cyan][/bold]"
 
 shell_symbols: Dict[str, str] = {
     'zsh': '%',
@@ -506,14 +526,14 @@ ifaces_addr: List[str] = []
 # Pacman: Width=29, Height=12
 # -------------------------------------------------------------------
 MINI_PACMAN = '[yellow]󰮯 [/yellow]  [dark_orange]󰊠 [/dark_orange] [cyan]󰊠 [/cyan] [red]󰊠 [/red] [green]󰊠 [/green]'
-PACMAN = """
+PACMAN = f"""
 ▒▒▒▒▒▒▒██████████████▒▒▒▒▒▒▒▒
 ▒▒▒▒▒███████████████████▒▒▒▒▒
 ▒▒▒███████████████████████▒▒▒
 ▒█████████████████████▒▒▒▒▒▒▒
 ██████████████████▒▒▒▒▒▒▒▒▒▒▒
-████████████████▒▒▒▒▒▒▒▒  ▒
-████████████████▒▒▒▒▒▒▒▒  ▒
+████████████████▒▒▒▒▒▒▒▒{DICE} {HOTDOG} ▒
+████████████████▒▒▒▒▒▒▒▒{HAMBURGER} {PYTHON} ▒
 ██████████████████▒▒▒▒▒▒▒▒▒▒▒
 ▒█████████████████████▒▒▒▒▒▒▒
 ▒▒▒███████████████████████▒▒▒
@@ -562,7 +582,7 @@ def cpu() -> str:
 
 
 @exception_handler(RuntimeWarning, PermissionError, OSError, cause=EXEC_ERROR.format('Memory'))
-def ram() -> str:
+def memory() -> str:
     mem = psutil.virtual_memory()
     usage = round(mem.percent)
     total = round(mem.total / (1000 ** 3), 1)
@@ -571,7 +591,7 @@ def ram() -> str:
     pu = usage * progress_length // 100
     pr = progress_length - pu
 
-    outputs['Memory'] = f" Usage: {usage}% [{'=' * pu}{'-' * pr}] =~ {used}GB / {total}GB"
+    outputs['Memory'] = f" Usage: {'■' * pu}{'□' * pr} {usage}% =~ {used}GB / {total}GB"
     return outputs['Memory']
 
 
@@ -585,7 +605,7 @@ def swap() -> str:
     pu = usage * progress_length // 100
     pr = progress_length - pu
 
-    outputs['Swap'] = f" Usage: {usage}% [{'=' * pu}{'-' * pr}] =~ {used}GB / {total}GB"
+    outputs['Swap'] = f" Usage: {'■' * pu}{'□' * pr} {usage}% =~ {used}GB / {total}GB"
     return outputs['Swap']
 
 
@@ -608,15 +628,15 @@ def ping() -> str:
     cmd = f"ping -c 1 {dns}"
     try:
         if not ifaces_addr:
-            return f" 999ms   {dns}"
+            return f" 999ms {PING}  {dns}"
         else:
             with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE) as ping_proc:
                 stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
                 time = re.findall(r"time=.*ms", stdout)[0].replace('time=', '')
-                return f" {time}   {dns}"
+                return f" {time} {PING}  {dns}"
 
     except Exception:
-        return f" 999ms   {dns}"
+        return f" 999ms {PING}  {dns}"
 
 
 @threader(daemon=pacman_ping)
@@ -627,24 +647,27 @@ def network() -> str:
         for interface_name, interface_addresses in net_ifaces.items():
             for address in filter(lambda addr: addr.family.name == "AF_INET", interface_addresses):
                 if interface_name.startswith(('t', 'n', 'wg')):
-                    ifaces_addr.insert(0, f"VPN  │")
+                    ifaces_addr.insert(0, f"VPN 󰢭 │")
 
-                elif interface_name.startswith(('w', 'e', 'u', 'd')):
-                    ifaces_addr.append(f"{interface_name}   {address.address} │")
+                elif interface_name.startswith(('e', 'u', 'd')):
+                    ifaces_addr.append(f"{interface_name} 󱘖  {address.address} 󰈀 │")
+
+                elif interface_name.startswith('w'):
+                    ifaces_addr.append(f"{interface_name} 󱘖  {address.address}  │")
 
     except (RuntimeWarning, PermissionError, OSError):
-        outputs['Network'] = f" Check your   Connections {ping() if pacman_ping else ''}"
+        outputs['Network'] = f" Check your 󱘖  Connections 󰌙 {ping() if pacman_ping else ''}"
         return outputs['Network']
 
     if not ifaces_addr:
-        outputs['Network'] = f" Check your   Connections {ping() if pacman_ping else ''}"
+        outputs['Network'] = f" Check your 󱘖  Connections 󰌙 {ping() if pacman_ping else ''}"
         return outputs['Network']
 
     else:
         iface_buffer = "{} " * len(ifaces_addr)
         iface_buffer = iface_buffer.format(*ifaces_addr).strip(' │')
 
-        outputs['Network'] = f" {iface_buffer} {ping() if pacman_ping else ''}"
+        outputs['Network'] = f" {iface_buffer} {ping() if pacman_ping else ''}"
         return outputs['Network']
 
 
@@ -791,7 +814,7 @@ def main() -> None:
     cpu()
     gpu()
     display()
-    ram()
+    memory()
     swap()
     disk()
     network()
@@ -822,7 +845,7 @@ def main() -> None:
 
     pprint(f"""        {'─' * (int(D // 2) - 2)}── {MINI_PACMAN}{'─' * (int(D // 2) - 1)}
 
-          {COLOR_BANNER.format(*[color.format(F * 3) for color in colors])}
+          {COLOR_BANNER.format(*[color.format(E * 3) for color in colors])}
            {random.choice(colors).format(MAIN_BANNER)}""")
 
 if __name__ == '__main__':
