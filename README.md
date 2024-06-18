@@ -25,23 +25,10 @@ icon_in_terminal project [github](https://github.com/sebastiencs/icons-in-termin
 	```bash
 	sudo apt install fontconfig
     ```
-2. copy all fonts that exist on `icon-terminal-terminal/fonts` to `~/.fonts` and `~/.local/share/fonts`
-    - if `~/.fonts` and `~/.local/share/fonts` does not exist, then create them!
-        ```bash
-        mkdir ~/.fonts ~/.local/share/fonts
-        ```
-3. download your favorite **nerd-font** from this [link](https://www.nerdfonts.com/font-downloads)
+
+2. download your favorite **nerd-font** from this [link](https://www.nerdfonts.com/font-downloads)
     1. copy your **nerd-font** to `~/.fonts` and `~/.local/share/fonts`
     2. go to *preference* or *settings* of your terminal, change the font of terminal to your **nerd-font**
-4. go to `icon-terminal-terminal/` and execute the **install.sh**
-    ```bash
-    ./install.sh
-    ```
-5. close your terminal and open it again, then go to `icon-terminal-terminal/` and execute the **print_icons.sh**
-    ```bash
-    ./print_icons.sh
-    ```
-- Check this [tutorial](https://drive.google.com/file/d/1OzPaTG-C80zPBTJEpZWSkWy1y1jB03Pq/view?usp=sharing) for install fonts
 
 ## How to use?
 1. Install requirements
