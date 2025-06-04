@@ -9,27 +9,44 @@
 # Python Version 3.6 or higher
 # Pacman_Fetch
 
-ALPHA = "[purple]alpha[/purple]"
-BETA = "[red]beta[/red]"
-STABLE = "[green]stable[/green]"
+#TODO: Improve Option, "pacmanfetch -pi -v -d 10" != "pacmanfetch -d 10 -pi -v"
+
+BETA = "[red]beta[/]"
+ALPHA = "[purple]alpha[/]"
+STABLE = "[green]stable[/]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v1.0.0-{BETA}"
+__version__ = f"v1.2.0-{STABLE}"
+__project__ = "Pacman Fetch"
 
-""" Pacman Fetch!
-For Better Experience Install NerdFont:
-https://www.nerdfonts.com/ """
+import os
+import re
+import sys
+import json
+import time
+import random
+import inspect
+import itertools
+import subprocess
+import dataclasses
 
-import os, subprocess, re, sys, json, random
-from typing import Tuple, List, Dict, Generator, Callable, Any
-from time import sleep, time
+from typing import (
+    Tuple, List, Dict,
+    Generator, Callable, Any
+)
 
 try:
     import psutil, distro
-    from rich.console import Console
+    from rich.box import HORIZONTALS
+    from rich.text import Text
     from rich.table import Table
+    from rich.console import Console
     from rich import pretty, traceback
+
     from threading import Thread
+
+    # from bigtree.tree.construct import list_to_tree
+    # from bigtree.tree.export import yield_tree
 
 except ImportError as E:
     print(f"[*] Error. {E} - Please Install the Pkgs.")
@@ -39,9 +56,17 @@ else:
     pretty.install()
     traceback.install()
 
-#TODO: Improve Option, "pacmanfetch -pi -v -d 10" != "pacmanfetch -d 10 -pi -v"
+# Colors
+# -------------------------------------------------------------------
+SUPPORTED_COLOR = "red sea_green1 dark_orange medium_violet_red slate_blue3".split(' ') + \
+"grey74 hot_pink gold1 dark_cyan blue purple chartreuse3 cyan orange4 white".split(' ') + \
+"black green yellow grey66 salmon1".split(' ')
+
+COLOR_BANNER = """{}{}{}{}{}{}{}
+           {}{}{}{}{}{}{}"""
 
 # Icons
+# -------------------------------------------------------------------
 GITHUB = '\uf113'
 PYTHON = '\ue235'
 HEART = '\uf004'
@@ -62,33 +87,20 @@ HAMBURGER = '\ue24d'
 
 # Banners
 # -------------------------------------------------------------------
-MAIN_BANNER = f"""[bold][blink] ┌─────────────────┐
-            │ {PYTHON} Pacmanfetch {GITHUB} │
-            └─────────────────┘[/blink][/bold]"""
-
-HELP = f"""
-Intro:
-    Fetch your system!
-    ────===❰ [blink]{PYTHON} [gold1]Pacmanfetch[/gold1] {GITHUB} [/blink] ❱===────
-
-Helps:
-    [bold][red]-d --delay[/red][/bold]: Get delay to show you typewriter style
-        $ pacmanfetch -d 10
-    [bold][cyan]-p --pacman[/cyan][/bold]: Show you big pacman
-        $ pacmanfetch -p
-    [bold][green]-v --version[/green][/bold]: Show you version
-        $ pacmanfetch -v
-    [bold][gold1]-i --ping[/gold1][/bold]: Enable or Disable ping
-        $ pacmanfetch -i
-    [bold][medium_violet_red]-c --config[/medium_violet_red][/bold]: Use config file
-        $ pacmanfetch -c
-    [bold][orange4]-h --help[/orange4][/bold]: Show help
-        $ pacmanfetch -h
+BANNER = f"""
+    ────━━━━ [blink][gold1]{__project__}[/][/] ━━━━────
+        Version: {__version__}
+        Source: {__repo__}
 """
 
+MAIN_BANNER = f"""[bold][blink]┎─────────────────┒
+            ║ {PYTHON} Pacmanfetch {GITHUB} ║
+            ┖─────────────────┚[/][/]"""
+
 # Functions
-# ---------------------------------------------------------------------
-pprint = lambda *args, **kwargs: Console().print(*args, **kwargs)
+# -------------------------------------------------------------------
+console = Console()
+pprint = lambda *args, **kwargs: console.print(*args, **kwargs)
 
 def clear() -> None:
     print('\033c', end='')
@@ -96,11 +108,15 @@ def clear() -> None:
 
 def goodbye(expression: bool, cause: str='Unknown'):
     if expression:
-        pprint(f"[{ERROR}]. {cause}")
+        pprint("{} {}#{}".format(
+            cause,
+            inspect.getouterframes(inspect.currentframe())[1].filename.split('/')[-1],
+            inspect.getouterframes(inspect.currentframe())[1].lineno
+        ))
         sys.exit()
 
 # Decorators
-# --------------------------------------------------------------------
+# -------------------------------------------------------------------
 def exception_handler(*exceptions, cause: str='', do_this: Callable=sys.exit) -> Callable[[Any], Any]:
     def __decorator__(func: Callable) -> Callable[[Any], Any]:
         def __wrapper__(*args, **kwargs) -> Any:
@@ -137,7 +153,17 @@ def threader(daemon: bool=False) -> Callable[[Callable], Any]:
     return __decorator__
 
 # Classes
-# --------------------------------------------------------------------
+# -------------------------------------------------------------------
+@dataclasses.dataclass(slots=True, eq=False, frozen=True)
+class Method:
+    do_this: Callable[[Any], Any]
+    has_input: bool
+    type_input: type
+    default_input: Any
+    is_required: bool
+    help_description: str
+
+
 class Options:
     """
     Argument Parser!
@@ -155,151 +181,229 @@ class Options:
             def do_you_wanna_something_to_do():
                 ...
             
-            @option('--switch')
+            @option('--opt')
 
             def do_you_wanna_something_to_do():
                 ...
             
-            @option('-s', '--switch')
+            @option('-s', '--opt')
 
             def do_you_wanna_something_to_do():
                 ...
             
-            @option('-s', '--switch', has_input=True, type_of_input=type)
+            @option('-s', '--opt', has_input=True, type_input=type)
 
             def do_you_wanna_something_to_do(arg: type):
                 ...
-    
-        - Directly
 
-            option['- or -- switch'] = (function, has_input(True or False), type_of_input=(str, int, ...))
+            @option('-s', '--opt', required=True)
 
-            option['-s'] = (do_you_wanna_something_to_do)
-            
-            option['-s'] = (do_you_wanna_something_to_do, True, type)
-
-            option['--switch'] = (do_you_wanna_something_to_do)
-            
-            option['--switch'] = (do_you_wanna_something_to_do, True, type)
+            def do_you_wanna_something_to_do():
+                ...
     """
 
-    __slots__ = "__option_list", "__option_method"
+    __slots__ = ("project_name", "__option_method", "__run_without_help", "__intro")
 
-    def __init__(self):
-        self.__option_list: List[str] = []
-        self.__option_method: Dict[str, Tuple[Callable[[Any], Any], bool, type]] = {}
+    def __init__(self, project_name: str, intro: str='', run_without_help: bool=True):
+        self.project_name = project_name
+        self.__option_method: Dict[str, Method] = {
+            ('--help',): Method(self.__help, False, None, None, False, f"Show help Screen of {project_name}")
+        }
+        self.__intro = intro
+        self.__run_without_help = run_without_help
 
 
-    def __str__(self):
-        table = Table()
-        table.add_column('Switches')
-        table.add_column('Methods')
-        for switch, method in self.option_method.items():
-            table.add_row(switch, method[0].__name__)
-        pprint(table)
-        return '\r'
+    def __repr__(self):
+        return f"Input Args: {sys.argv} to parse"
 
 
     def __call__(
-            self, *switches: str,
+            self, *options: Tuple[str],
             has_input: bool=False,
-            type_of_input: type=None
+            type_input: type=None,
+            default_input: Any=None,
+            is_required: bool=False,
+            help_description: str="...",
         ):
         """
-            switches: start with - or --.
-            has_input: maybe the switches include the argument after them.
-            type_of_input: type of arguments after switch and depends on has_input.
+            options: start with - or --.
+            has_input: maybe the options include the argument after them.
+            type_input: type of arguments after option and depends on has_input.
+            default_input: get default input if user don't give enough arg to option.
+            is_required: force to use option.
+            help_description: the description for option about how to use option.
         """
         def __decorator__(func: Callable[[Any], Any]) -> Callable[[None], None]:
-            for sw in switches:
-                goodbye(
-                    sw in self.__option_method.keys(),
-                    cause="Duplicate switch={0}, [bold]{1}[/bold] used for [bold]{2}[/bold]".format(
-                        sw, sw, self.__option_method.get(sw, (print,))[0].__name__
-                    )
-                )
-                self.__option_method[sw] = (func, has_input, type_of_input)
 
-            self.__option_list.extend(switches)
+            for exist_opt in self.__option_method:
+                for opt in exist_opt:
+                    goodbye(
+                        opt in options,
+                        cause="Duplicate option=({0}) selected for [bold]{1}[/], But now [bold]{2}[/] used for [bold]{3}[/]".format(
+                            opt, func.__name__, opt, self.__option_method.get(exist_opt).do_this.__name__
+                        )
+                    )
+
+            self.__option_method[options] = Method(func, has_input, type_input, default_input, is_required, help_description)
 
         return __decorator__
 
 
-    def __setitem__(self, key: str, value: tuple) -> None:
+    @property
+    def option_method(self) -> Dict[str, Method]:
+        return self.__option_method
+
+
+    @property
+    def all_options(self) -> List[str]:
+        opt_lst: List[str] = []
+
+        for option in self.option_method:
+            for opt in option: opt_lst.append(opt)
+
+        return opt_lst
+
+
+    def parse(self) -> Generator[Tuple[Tuple[str], Any], None, None]:
+
         goodbye(
-            not ((not isinstance(value, tuple) or value.__len__() < 3) and callable(value[0])),
-            cause="""Bad value format.\nValid format:
-        option_obj['-s' or '--switch' or '-s --switch'] = (
-            function, # Should be Callable.
-            True or False, # If your function should get argument, set it True or not False.
-            type, # Set type of argument that will pass to function (str, int, ...).
-        )""",
+            len(sys.argv) < 2 and not self.__run_without_help,
+            cause=f"Run program with --help for more information."
         )
-        self.__option_method[key] = value
 
+        # Handle option validation and combination
+        for i, opt_argv in enumerate(sys.argv, start=1):
+            if not opt_argv.startswith(('-', '--')):
+                continue # valid options can start with - --
 
-    def __getitem__(self, key: str) -> Any:
-        return self.__option_method.get(key, None)
-
-    def parse(self) -> Generator[Any, None, None]:
-        for i, sw in enumerate(sys.argv, start=1):
-            # goodbye(sw.startswith(('+', '=', '/', '\\', '$', '#', '>', '<', '@', '!', '`', '~')))
-
-            if not sw.startswith(('-', '--')):
-                continue # valid switches can start with - --            
-            
-            # Handle the complete-switches: Example ==> --add --list --dump
-            if '--' in sw:
-                yield self.__switch_executer(sw, i)
-                continue
-            
-            # Handle the abbreviation-switches: Example ==> -a -l -d
-            # Handle the mixed abbreviation-switches: Example ==> -ald = -dal
-            for chr in sw:
-                goodbye( # if user enter just -
-                    sw.__len__() == 1,
-                    cause=f"Invalid Switch=({sw})"
+            # Handle the complete-options: Example ==> --add --list --dump
+            else:
+                goodbye( # if user enter just - or --
+                    opt_argv in ('-', '--'),
+                    cause=f"Invalid option=({opt_argv})"
                 )
-                if chr == '-': continue
-                e_sw = f"-{chr}" # esw = extracted_switch
-                yield self.__switch_executer(e_sw, i)
 
+                for option in self.option_method:
+                    if opt_argv in option: # -t in ('-t', '--type') ?
+                        break
 
-    def __switch_executer(self, switch: str, switch_index: int) -> None:
-        try:
-            func, has_input, type_of_input = self.option_method[switch]
-            # func is __wrapper__ in __call__ that defined in Options class
-            # if switch has input, I should pass the location of input to func
-            # if it hasn't, it will be handle in __wrapper__ with has_input
-        except KeyError:
-            goodbye(True, cause=f"Invalid Switch=({switch})")
-        # eval(f"{func}({i + 1})")
-        if not has_input:
-            return func()
-        else:
-            arg_input = sys.argv[switch_index].__str__()
-            goodbye(
-                type_of_input is None,
-                cause=f"Get type-of-arguments=({arg_input}) after [bold]{switch}[/bold]",
-            )
-            try:
-                arg_input = type_of_input(arg_input)
-            except ValueError:
+                else: goodbye(True, cause=f"Invalid option=({opt_argv})")
+
+            yield self.__executer(option, i)                
+
+            # TODO: It's not work properly!!!
+            # Convert -ald to -a -l -d and parse it individually
+            # Handle the abbreviation-options: Example ==> -a -l -d
+            # Handle the mixed abbreviation-options: Example ==> -ald = -dal
+
+        # Handle is_required flag
+        for option, method in self.option_method.items():
+            for opt in option:
+                if not (opt not in sys.argv and method.is_required == True): break
+
+            else:
                 goodbye(
                     True,
-                    cause=f"Gave bad-argument=({arg_input}) after [bold]{switch}[/bold]",
+                    cause="Input CMD: {0} <missing-option>\nThis missing-option=({1}) is Required, use --help to see".format(
+                        ' '.join(sys.argv), ' '.join(option)
+                ))
+
+
+    def __executer(self, option: Tuple[str], option_index: int) -> Any:
+
+        method: Method = self.option_method[option]
+        output: Any = None
+
+        if not method.has_input:
+            return option, method.do_this()
+
+        try:
+            arg_input = sys.argv[option_index]
+
+            goodbye(
+                method.type_input is None,
+                cause=f"Get type-of-arguments=({arg_input}) after [bold]{option}[/]",
+            )
+            goodbye(
+                method.default_input is not None
+                and not isinstance(method.default_input, method.type_input),
+                cause="Gave bad-default-argument=({0}) after [bold]{1}[/], type_input=[bold]{2}[/] & default_input=[bold]{3}[/] are inconsistent!".format(
+                    method.default_input, option, method.type_input.__name__, method.default_input
+            ))
+            # script.py -r 10 -o -p good // -o in middle and it has default input
+            if arg_input in self.all_options:
+                goodbye(
+                    method.default_input is None,
+                    cause=f"Not enough-argument after [bold]{option}[/], use --help for more information.",
                 )
-            return func(arg_input)
+                goodbye(
+                    not isinstance(method.default_input, method.type_input),
+                    cause="Gave bad-default-argument=({0}) after [bold]{1}[/], type_input=[bold]{2}[/] & default_input=[bold]{3}[/] are inconsistent!".format(
+                        method.default_input, option, method.type_input.__name__, method.default_input
+                ))
+
+                return option, method.do_this(method.type_input(method.default_input))
+
+            arg_input = method.type_input(arg_input)
+            output = method.do_this(arg_input)
+
+        except IndexError:
+            goodbye(
+                method.default_input is None,
+                cause=f"Not enough-argument after [bold]{option}[/], use --help for more information.",
+            )
+            goodbye(
+                not isinstance(method.default_input, method.type_input),
+                cause="Gave bad-default-argument=({0}) after [bold]{1}[/], type_input=[bold]{2}[/] & default_input=[bold]{3}[/] are inconsistent!".format(
+                    method.default_input, option, method.type_input.__name__, method.default_input
+            ))
+
+            # script.py -r 10 -p good -o // -o in end and it has default input
+            output = method.do_this(method.type_input(method.default_input))
+
+        except ValueError:
+            goodbye(
+                method.default_input is None,
+                cause="Gave bad-argument=({0}) after [bold]{1}[/], type_input=[bold]{2}[/] & arg_input=[bold]{3}[/] are inconsistent!".format(
+                    arg_input, option, method.type_input.__name__, arg_input
+            ))
+
+            output = method.do_this(method.default_input)
+
+        except TypeError:
+            goodbye(
+                True,
+                cause=f"You enabled [bold]has_input[/] for {method.do_this.__name__}(), Write input-argument for it"
+            )
+
+        return option, output
 
 
-    @property
-    def option_list(self) -> List[str]:
-        return self.__option_list
+    def __help(self) -> None:
+        CYCLE_COLOR = itertools.cycle(SUPPORTED_COLOR)
 
+        table = Table(
+            "Options",
+            "Required",
+            # "Function",
+            "Help",
+            box=HORIZONTALS,
+            title=f"""{self.project_name}""",
+        )
 
-    @property
-    def option_method(self) -> Dict[str, str]:
-        return self.__option_method
+        pprint(self.__intro)
+
+        for option, method in self.option_method.items():
+            table.add_row(
+                Text(' '.join(option), style=f"bold italic {next(CYCLE_COLOR)}"),
+                Text('<<<-----' if method.is_required else '', style="bold"),
+                # method.do_this.__name__,
+                Text(method.help_description, justify=True),
+
+            )
+
+        pprint(table)
+        sys.exit()
 
 # Blocks
 # -------------------------------------------------------------------
@@ -315,43 +419,9 @@ H = 12
 # -------------------------------------------------------------------
 D = 0
 
-# Color list
-# -------------------------------------------------------------------
-colors: Tuple[str] = (
-    "[red]{}[/red]",                                #0
-    "[purple]{}[/purple]",                          #1
-    "[dark_orange]{}[/dark_orange]",                #2
-    "[chartreuse3]{}[/chartreuse3]",                #3
-    "[cyan]{}[/cyan]",                              #4
-    "[hot_pink]{}[/hot_pink]",                      #5
-    "[orange4]{}[/orange4]",                        #6
-    "[dark_cyan]{}[/dark_cyan]",                    #7
-    "[grey74]{}[/grey74]",                          #8
-    "[slate_blue3]{}[/slate_blue3]",                #9
-    "[medium_violet_red]{}[/medium_violet_red]",    #10
-    "[gold1]{}[/gold1]",                            #11
-    "[sea_green1]{}[/sea_green1]",                  #12
-    "[white]{}[/white]",                            #13
-    "[black]{}[/black]",                            #14
-)
-
-# Colorful blocks
-# -------------------------------------------------------------------
-BW = colors[13].format(F)
-BC = colors[4].format(F)
-BY = colors[11].format(F)
-BG = colors[3].format(F)
-BR = colors[0].format(F)
-BP = colors[1].format(F)
-BO = colors[2].format(F)
-BK = colors[14].format(F)
-
-COLOR_BANNER = """{}{}{}{}{}{}{}
-           {}{}{}{}{}{}{}"""
-
 # Random Block color list
 # -------------------------------------------------------------------
-block_colors = [BR, BP, BO, BG, BC]
+block_colors = ['[red]', '[purple]', '[dark_orange]', '[green]', '[cyan]']
 random.shuffle(block_colors)
 
 # Variables
@@ -359,10 +429,10 @@ random.shuffle(block_colors)
 pacman_delay = lambda x=[]: 0
 pacman_ping = False
 pacman_config = False
-INFO = '[green]Info[/green]'
-NOTICE = '[purple]Notice[/purple]'
-WARNING = '[dark_orange]Warning[/dark_orange]'
-ERROR = '[red]Error[/red]'
+INFO = '[green]Info[/]'
+NOTICE = '[purple]Notice[/]'
+WARNING = '[dark_orange]Warning[/]'
+ERROR = '[red]Error[/]'
 EXEC_ERROR = 'OS or Permission Error Occurred for Get {} Info'
 threads: List[Thread] = []
 outputs: Dict[str, str] = {
@@ -386,20 +456,27 @@ progress_length = 20
 
 # Options
 # -------------------------------------------------------------------
-option = Options()
-
-@option('-v', '--version')
-def do_you_wanna_see_version() -> None:
-    pprint(
-    f"""
-    ────===❰ [blink]{PYTHON} [gold1]Pacmanfetch[/gold1] {GITHUB} [/blink] ❱===────
-    Version: {__version__}
-    Source: {__repo__}
+option = Options(
+    __project__,
+    intro="""
+    For Better Experience Install NerdFont: https://www.nerdfonts.com/
     """
-    )
+)
+
+@option(
+    '-v', '--version',
+    help_description=f"pacmanfetch -v. Show version of {__project__}."
+)
+def do_you_wanna_see_version() -> None:
+    pprint(BANNER)
+    exit(0)
 
 
-@option('-d', '--delay', has_input=True, type_of_input=int)
+@option(
+    '-d', '--delay',
+    has_input=True, type_input=int,
+    help_description="pacmanfetch -d <>. Type writer style printing"
+)
 def do_you_wanna_typewriter_style(speed: int) -> None:
     global pacman_delay
     if not speed:
@@ -407,32 +484,34 @@ def do_you_wanna_typewriter_style(speed: int) -> None:
     else: pacman_delay = lambda x=[]: speed
 
 
-@option('-p', '--pacman')
+@option(
+    '-p', '--pacman',
+    help_description="pacmanfetch -p. Show Pacman and Ghosts"
+)
 def do_you_wanna_show_pacman() -> None:
     ghost_buffer = "{}" * max_ghost 
-    for n in range(H + 1):
+    for n in range(H):
         pprint(ghost_buffer.format(
-            PACMAN.split('\n')[n].replace('▒', ' '),
-                *(
-                    GHOST.split('\n')[n] \
-                        .replace('▒', ' ') \
-                        .replace(F, block_colors[i]) \
-                        .replace('@', BW) \
-                        .replace('#', BK) \
-                        for i in range(max_ghost - 1)
-                ),
+                PACMAN('[yellow]').split('\n')[n],
+                *(GHOST(i).split('\n')[n] for i in range(max_ghost - 1)),
             )
         )
-        sleep(pacman_delay(rand_waits) / 369)
+        time.sleep(pacman_delay(rand_waits) / 369)
 
 
-@option('-i', '--ping')
+@option(
+    '-i', '--ping',
+    help_description="pacmanfetch -i. Enable ping to check network connection"
+)
 def do_you_wanna_ping() -> None:
     global pacman_ping
     pacman_ping = True
 
 
-@option('-c', '--config')
+@option(
+    '-c', '--config',
+    help_description="pacmanfetch -c. Use \"config.json\" file"
+)
 def do_you_wanna_use_config() -> None:
     global pacman_config, config
     pacman_config = True
@@ -453,12 +532,6 @@ def do_you_wanna_use_config() -> None:
     config = json.load(config_file)
     
     config_file.close()
-
-
-@option('-h', '--help')
-def do_you_wanna_help() -> None:
-    pprint(HELP)
-    sys.exit()
 
 
 # OS logos
@@ -486,35 +559,22 @@ Intel = '[blue]Intel[/blue]'
 
 # System Info Structure
 # -------------------------------------------------------------------
-system_info_colors: List[str] = [
-    'red',                  # os
-    'sea_green1',           # kernel
-    'dark_orange',          # cpu
-    'medium_violet_red',    # gpu
-    'slate_blue3',          # display
-    'grey74',               # memory
-    'hot_pink',             # swap
-    'gold1',                # disk
-    'dark_cyan',            # network
-    'blue',                 # uptime
-]
-
-system_info_title: List[str] = [
-    f"        ▒ OS {OS_logos.get(OS_name, LINUX)}      ▒", # os
-    f"        ▒ Kernel {HEART}  ▒", # kernel
-    f"        ▒ CPU {BRAIN}     ▒", # cpu
-    f"        ▒ GPU {LEGO}     ▒", # gpu
-    f"        ▒ Display {SCREEN} ▒", # resolution
-    f"        ▒ Memory {MEMORY}  ▒", # memory
-    f"        ▒ Swap {SWAP}    ▒", # swap
-    f"        ▒ Disk {DISK}    ▒", # disk
-    f"        ▒ Network {NETWORK} ▒", # network
-    f"        ▒ UpTime {UPTIME}  ▒", # uptime
+SYS_INFO_TITLE: List[str] = [
+    f"{OS_logos.get(OS_name, LINUX)}  OS      ",
+    f"{HEART}  Kernel  ",
+    f"{BRAIN}  CPU     ",
+    f"{LEGO}  GPU     ",
+    f"{SCREEN}  Display ",
+    f"{MEMORY}  Memory  ",
+    f"{SWAP}  Swap    ",
+    f"{DISK}  Disk    ",
+    f"{NETWORK}  Network ",
+    f"{UPTIME}  UpTime  ",
 ]
 
 NODE = "[bold][white]\ue683 {0}{1}  [/white][yellow2]\ue23f {2}[/yellow2][red]@[/red][cyan]{3}[/cyan][/bold]"
 
-shell_symbols: Dict[str, str] = {
+SEHLL_SYMS: Dict[str, str] = {
     'zsh': '%',
     'bash': '$',
 }
@@ -525,41 +585,39 @@ ifaces_addr: List[str] = []
 
 # Pacman: Width=29, Height=12
 # -------------------------------------------------------------------
-MINI_PACMAN = '[yellow]󰮯 [/yellow]  [dark_orange]󰊠 [/dark_orange] [cyan]󰊠 [/cyan] [red]󰊠 [/red] [green]󰊠 [/green]'
-PACMAN = f"""
-▒▒▒▒▒▒▒██████████████▒▒▒▒▒▒▒▒
-▒▒▒▒▒███████████████████▒▒▒▒▒
-▒▒▒███████████████████████▒▒▒
-▒█████████████████████▒▒▒▒▒▒▒
-██████████████████▒▒▒▒▒▒▒▒▒▒▒
-████████████████▒▒▒▒▒▒▒▒{DICE} {HOTDOG} ▒
-████████████████▒▒▒▒▒▒▒▒{HAMBURGER} {PYTHON} ▒
-██████████████████▒▒▒▒▒▒▒▒▒▒▒
-▒█████████████████████▒▒▒▒▒▒▒
-▒▒▒███████████████████████▒▒▒
-▒▒▒▒▒███████████████████▒▒▒▒▒
-▒▒▒▒▒▒▒▒█████████████▒▒▒▒▒▒▒▒
-""".replace(F, BY)
+MINI_PACMAN = '[yellow]󰮯 [/]  [dark_orange]󰊠 [/] [cyan]󰊠 [/] [red]󰊠 [/] [green]󰊠 [/]'
+PACMAN = lambda ci: """
+{0}▒▒▒▒▒▒▒██████████████▒▒▒▒▒▒▒▒[/]
+{0}▒▒▒▒▒███████████████████▒▒▒▒▒[/]
+{0}▒▒▒███████████████████████▒▒▒[/]
+{0}▒█████████████████████▒▒▒▒▒▒▒[/]
+{0}██████████████████▒▒▒▒▒▒▒▒▒▒▒[/]
+{0}████████████████▒▒▒▒[/]{1} {2} {3} {4} ▒
+{0}██████████████████▒▒▒▒▒▒▒▒▒▒▒[/]
+{0}▒█████████████████████▒▒▒▒▒▒▒[/]
+{0}▒▒▒███████████████████████▒▒▒[/]
+{0}▒▒▒▒▒███████████████████▒▒▒▒▒[/]
+{0}▒▒▒▒▒▒▒▒█████████████▒▒▒▒▒▒▒▒[/]
+""".format(ci, HAMBURGER, PYTHON, DICE, HOTDOG).replace(E, ' ')
 
 # Ghost: Width=29, Height=12
 # -------------------------------------------------------------------
-GHOST = """
-▒▒▒▒▒▒▒██████████████▒▒▒▒▒▒▒▒
-▒▒▒▒▒██████████████████▒▒▒▒▒▒
-▒▒▒@@@@@@█████@@@@@@█████▒▒▒▒
-▒██@@##@@█████@@##@@███████▒▒
-▒██####@@█████####@@███████▒▒
-▒██@@@@@@█████@@@@@@███████▒▒
-▒██████████████████████████▒▒
-▒██████████████████████████▒▒
-▒██████████████████████████▒▒
-▒██████████████████████████▒▒
-▒████▒▒████▒▒▒▒▒▒████▒▒████▒▒
-▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒
-"""
+GHOST = lambda ci: """
+{0}▒▒▒▒▒▒▒██████████████▒▒▒▒▒▒▒▒[/]
+{0}▒▒▒▒▒██████████████████▒▒▒▒▒▒[/]
+{0}▒▒▒@@@@@@█████@@@@@@█████▒▒▒▒[/]
+{0}▒██@@##@@█████@@##@@███████▒▒[/]
+{0}▒██####@@█████####@@███████▒▒[/]
+{0}▒██@@@@@@█████@@@@@@███████▒▒[/]
+{0}▒██████████████████████████▒▒[/]
+{0}▒██████████████████████████▒▒[/]
+{0}▒██████████████████████████▒▒[/]
+{0}▒████▒▒████▒▒▒▒▒▒████▒▒████▒▒[/]
+{0}▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒▒▒▒▒██▒▒[/]
+""".format(block_colors[ci]).replace(E, ' ').replace('@', f"[white]{F}[/]").replace('#', f"[black]{F}[/]")
 
 
-def cpu() -> str:
+def cpu() -> None:
     cpu_info = ''
     cpu_freq = 0.0
     cmd = 'lscpu'
@@ -578,11 +636,9 @@ def cpu() -> str:
     else:
         outputs['CPU'] = f" {cpu_info} {psutil.cpu_count()} Cores"
 
-    return outputs['CPU']
-
 
 @exception_handler(RuntimeWarning, PermissionError, OSError, cause=EXEC_ERROR.format('Memory'))
-def memory() -> str:
+def memory() -> None:
     mem = psutil.virtual_memory()
     usage = round(mem.percent)
     total = round(mem.total / (1000 ** 3), 1)
@@ -591,12 +647,11 @@ def memory() -> str:
     pu = usage * progress_length // 100
     pr = progress_length - pu
 
-    outputs['Memory'] = f" Usage: {'■' * pu}{'□' * pr} {usage}% =~ {used}GB / {total}GB"
-    return outputs['Memory']
+    outputs['Memory'] = f" Usage: 〉{'━' * pu}{'╍' * pr}〈 {usage:.2f}% =~ {used}GB / {total}GB"
 
 
 @exception_handler(RuntimeWarning, PermissionError, OSError, cause=EXEC_ERROR.format('Swap'))
-def swap() -> str:
+def swap() -> None:
     swap = psutil.swap_memory()
     usage = round(swap.percent)
     total = round(swap.total / (1000 ** 3), 1)
@@ -605,12 +660,11 @@ def swap() -> str:
     pu = usage * progress_length // 100
     pr = progress_length - pu
 
-    outputs['Swap'] = f" Usage: {'■' * pu}{'□' * pr} {usage}% =~ {used}GB / {total}GB"
-    return outputs['Swap']
+    outputs['Swap'] = f" Usage: 〉{'━' * pu}{'╍' * pr}〈 {usage:.2f}% =~ {used}GB / {total}GB"
 
 
 @exception_handler(RuntimeWarning, PermissionError, OSError, cause=EXEC_ERROR.format('Disk'))
-def disk() -> str:
+def disk() -> None:
     home = psutil.disk_usage('/home')
     home_total = f"{home.total / (1024 ** 3):.1f}"
     home_free = f"{home.free / (1024 ** 3):.1f}"
@@ -619,68 +673,64 @@ def disk() -> str:
     root_total = f"{root.total / (1024 ** 3):.1f}"
     root_free = f"{root.free / (1024 ** 3):.1f}"
     
-    outputs['Disk'] = f""" Root({root_total} GB) free: {root_free} GB │ Home({home_total} GB) free: {home_free} GB"""
-    return outputs['Disk']
+    outputs['Disk'] = f""" Root({root_total} GB) free: {root_free} GB ━ Home({home_total} GB) free: {home_free} GB"""
 
 
 def ping() -> str:
     dns = config.get('dns', '8.8.8.8')
     cmd = f"ping -c 1 {dns}"
-    try:
-        if not ifaces_addr:
-            return f" 999ms {PING}  {dns}"
-        else:
+
+    if not ifaces_addr:
+        return f"Ping: 999ms {PING}  {dns}"
+
+    else:
+        try:
             with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE) as ping_proc:
                 stdout = ''.join(line.decode('utf-8') for line in ping_proc.stdout)
                 time = re.findall(r"time=.*ms", stdout)[0].replace('time=', '')
-                return f" {time} {PING}  {dns}"
+                return f"Ping: {time} {PING}  {dns}"
 
-    except Exception:
-        return f" 999ms {PING}  {dns}"
+        except Exception:
+            return f"Ping: 999ms {PING}  {dns}"
 
 
 @threader(daemon=pacman_ping)
-def network() -> str:
+def network() -> None:
     try:
         net_ifaces = psutil.net_if_addrs()
 
         for interface_name, interface_addresses in net_ifaces.items():
             for address in filter(lambda addr: addr.family.name == "AF_INET", interface_addresses):
                 if interface_name.startswith(('t', 'n', 'wg')):
-                    ifaces_addr.insert(0, f"VPN 󰢭 │")
+                    ifaces_addr.insert(0, f" VPN 󰢭  ")
 
-                elif interface_name.startswith(('e', 'u', 'd')):
-                    ifaces_addr.append(f"{interface_name} 󱘖  {address.address} 󰈀 │")
+                elif interface_name.startswith(('e', 'u', 'd', 'b')):
+                    ifaces_addr.append(f" {interface_name} 󱘖  {address.address} 󰈀  ")
 
                 elif interface_name.startswith('w'):
-                    ifaces_addr.append(f"{interface_name} 󱘖  {address.address}  │")
+                    ifaces_addr.append(f" {interface_name} 󱘖  {address.address}   ")
 
     except (RuntimeWarning, PermissionError, OSError):
         outputs['Network'] = f" Check your 󱘖  Connections 󰌙 {ping() if pacman_ping else ''}"
-        return outputs['Network']
+
+        return
 
     if not ifaces_addr:
         outputs['Network'] = f" Check your 󱘖  Connections 󰌙 {ping() if pacman_ping else ''}"
-        return outputs['Network']
 
     else:
-        iface_buffer = "{} " * len(ifaces_addr)
-        iface_buffer = iface_buffer.format(*ifaces_addr).strip(' │')
-
-        outputs['Network'] = f" {iface_buffer} {ping() if pacman_ping else ''}"
-        return outputs['Network']
+        outputs['Network'] = f"{'║'.join(ifaces_addr)} {ping() if pacman_ping else ''}"
 
 
 @threader(daemon=pacman_config)
-def gpu() -> str:
-    gpu_info = ''
+def gpu() -> None:
+    gpu_info = []
 
     if pacman_config:
-        gpu_info = config["gpu"]
-        outputs['GPU'] = f" {gpu_info}"
+        outputs['GPU'] = f" {config['gpu']}"
         return outputs['GPU']
 
-    def finder(brand: Dict[str, List[str]]) -> Generator[str, None, None]:
+    def extractor(brand: Dict[str, List[str]]) -> Generator[str, None, None]:
         patterns = {
             'AMD': r"\[AMD/ATI\] [a-zA-Z]*/?[a-zA-Z]*",
             'Intel': r"(U?HD Graphics [0-9]*?$)|(Iris Xe Graphics.*)",
@@ -689,21 +739,13 @@ def gpu() -> str:
         for name, gpus in brand.items():
             for gpu in gpus:
                 try:
-                    temp = re.search(patterns.get(name, r".*"), gpu) \
+                    yield re.search(patterns.get(name, r".*"), gpu) \
                         .group().replace('[', '').replace(']', '')
 
                 except Exception:
                     yield ""
 
-                else:
-                    yield f"{temp} │ "
-
-    stdout = subprocess.run(
-        'lspci',
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL
-    ).stdout.decode('utf-8')
+    stdout = subprocess.run('lspci', shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.decode('utf-8')
 
     amd: Dict[str, List[str]] = {'AMD': [
         *re.findall(r"VGA.*(\[AMD/ATI\].*) \(", stdout),
@@ -722,29 +764,25 @@ def gpu() -> str:
     ]}
 
     for brand in [amd, intel, nvidia]:
-        for gpu in finder(brand):
-            gpu_info += gpu
+        for gpu in extractor(brand):
+            gpu_info.append(f" {gpu} ")
 
     if not gpu_info:
-        gpu_info = "Not Detected ..."
+        outputs['GPU'] = "Not Detected ..."
+
     else:
-        gpu_info = gpu_info.strip('│ ')
-
-    outputs['GPU'] = f" {gpu_info}"
-    return outputs['GPU']
+        outputs['GPU'] = '━'.join(gpu_info)
 
 
-def operate() -> str:
+def operate() -> None:
     outputs['OS'] = f" {OS_name.title()} {OS_version}"
-    return outputs['OS']
 
 
-def kernel() -> str:
+def kernel() -> None:
     outputs['Kernel'] = f" {os.uname()[2]}"
-    return outputs['Kernel']
 
 
-def display() -> str:
+def display() -> None:
     try:
         cmd = "xrandr | awk 'match($0,/[0-9]*\.[0-9]*\*/)'"
         all_info = subprocess.check_output(
@@ -767,17 +805,17 @@ def display() -> str:
                 [re.sub(r"(\*\+)|(\*)", '', ref) for ref in info.split()[1:]],
                 key=len
             )
-            displays.append(f" DP-{i}({resolution} {max_refresh_rate}Hz) ")
+            displays.append(f" DP-{resolution} {max_refresh_rate}Hz ")
 
-        outputs['Display'] = '│'.join(displays)
-        return outputs['Display']
+        outputs['Display'] = '━'.join(displays)
+        # outputs['Display'] = displays
 
 
 def node() -> str:
     global D
 
     shell = os.environ.get('SHELL').split('/')[-1]
-    shell_symbol = shell_symbols.get(shell, '#')
+    shell_symbol = SEHLL_SYMS.get(shell, '#')
     user = os.environ.get('USER')
     host = os.uname()[1]
 
@@ -785,30 +823,25 @@ def node() -> str:
     return NODE.format(shell, shell_symbol, user, host)
 
 
-def uptime() -> str:
-    system_up = round(time() - psutil.boot_time())
+def uptime() -> None:
+    system_up = round(time.time() - psutil.boot_time())
     hours = system_up // 60 // 60
     minutes = system_up // 60 % 60
     seconds = system_up % 60
 
     outputs['UpTime'] = f" {hours}h {minutes}m {seconds}s"
-    return outputs['UpTime']
 
 
-@exception_handler(IndexError, cause=f"Not enough arguments")
 @exception_handler(KeyboardInterrupt, cause=f"Ctrl+C", do_this=sys.exit)
 def main() -> None:
     global config
-
-    clear()
 
     # Argument parsing
     # -------------------------------------------------------------------
     for _ in option.parse(): ...
 
-    # Draw system info
+    # Call system info
     # -------------------------------------------------------------------
-    # system_info_details: List[str] = [
     operate()
     kernel()
     cpu()
@@ -819,34 +852,45 @@ def main() -> None:
     disk()
     network()
     uptime()
-    # ]
+    clear()
 
+    # Draw system info
+    # -------------------------------------------------------------------
     pprint(f"""
         {node()}
-        {'─' * (int(D // 2) - 2)}── {MINI_PACMAN}{'─' * (int(D // 2) - 1)}""")
+        {'─' * (D // 2 - 4)}╍╍╍╍━━━ {MINI_PACMAN}━━━╍╍╍╍{'─' * (D // 2 - 4)}""")
 
-    for color, hw in zip(system_info_colors, outputs.keys()):
+    for color, hw in zip(SUPPORTED_COLOR, outputs):
         try:
-            # details = system_info_details.pop(0)
             details = outputs[hw]
-            title = system_info_title.pop(0)
+            title = SYS_INFO_TITLE.pop(0)
 
         except IndexError:
             break
 
         else:
+            pprint("         ║ ", end='')
             for char in title: # Type titles with color
-                pprint(f"[{color}]{char}[/{color}]", end='')
-                sleep(pacman_delay(rand_waits) / 3333)
+                pprint(f"[{color}]{char}[/]", end='')
+                time.sleep(pacman_delay(rand_waits) / 3333)
+
+            pprint("║", end='')
+
             for char in details: # Type details without color
                 pprint(f"{char}", end='')
-                sleep(pacman_delay(rand_waits) / 3333)
+                time.sleep(pacman_delay(rand_waits) / 3333)
+
             print()
 
-    pprint(f"""        {'─' * (int(D // 2) - 2)}── {MINI_PACMAN}{'─' * (int(D // 2) - 1)}
+    pprint(f"""        {'─' * (D // 2 - 4)}╍╍╍╍━━━ {MINI_PACMAN}━━━╍╍╍╍{'─' * (D // 2 - 4)}
 
-          {COLOR_BANNER.format(*[color.format(E * 3) for color in colors])}
-           {random.choice(colors).format(MAIN_BANNER)}""")
+          {COLOR_BANNER.format(*[f"[{color}]{E * 3}[/]" for color in SUPPORTED_COLOR])}
+            [{random.choice(SUPPORTED_COLOR)}]{MAIN_BANNER}[/]""")
+
+    # o = list_to_tree(outputs['Display'].split("║"), sep='-')
+    # for m in yield_tree(o, style='rounded'):
+    #     pprint(m[1], m[2].name)
+    # o.show(style='rounded')
 
 if __name__ == '__main__':
     main()
