@@ -475,7 +475,7 @@ def do_you_wanna_see_version() -> None:
 @option(
     '-d', '--delay',
     has_input=True, type_input=int,
-    help_description="pacmanfetch -d <>. Type writer style printing"
+    help_description="pacmanfetch -d <0-...>. Type writer style printing"
 )
 def do_you_wanna_typewriter_style(speed: int) -> None:
     global pacman_delay
@@ -768,7 +768,7 @@ def gpu() -> None:
             gpu_info.append(f" {gpu} ")
 
     if not gpu_info:
-        outputs['GPU'] = "Not Detected ..."
+        outputs['GPU'] = " Unknown Vendor!"
 
     else:
         outputs['GPU'] = '━'.join(gpu_info)
@@ -819,7 +819,7 @@ def node() -> str:
     user = os.environ.get('USER')
     host = os.uname()[1]
 
-    D = len(shell + user + host)
+    D = int(len(shell + user + host) * 1.5)
     return NODE.format(shell, shell_symbol, user, host)
 
 
