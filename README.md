@@ -60,18 +60,22 @@ config.json use for:
 2. set gpu_info, if your gpu_info not found!
 
 ### Check the switches of pacmanfetch:
+```bash
+                           Pacman Fetch                           
+ ──────────────────────────────────────────────────────────────── 
+  Options        Required   Help                                  
+ ──────────────────────────────────────────────────────────────── 
+  --help                    Show help Screen of Pacman Fetch      
+  -v --version              pacmanfetch -v. Show version of       
+                            Pacman Fetch.                         
+  -d --delay                pacmanfetch -d <0-...>. Type writer   
+                            style printing                        
+  -p --pacman               pacmanfetch -p. Show Pacman and       
+                            Ghosts                                
+  -i --ping                 pacmanfetch -i. Enable ping to check  
+                            network connection                    
+  -c --config               pacmanfetch -c. Use "config.json"     
+                            file                                  
+ ────────────────────────────────────────────────────────────────
 ```
-Helps:
-    -d --delay: Get delay to show you typewriter style
-        $ pacmanfetch -d 10
-    -p --pacman: Show you big pacman
-        $ pacmanfetch -p
-    -v --version: Show you version
-        $ pacmanfetch -v
-    -i --ping: Enable or Disable ping
-        $ pacmanfetch -i
-    -c --config: Use config file
-        $ pacmanfetch -c
-    -h --help: Show help
-        $ pacmanfetch -h
-```
+
