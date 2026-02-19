@@ -647,7 +647,7 @@ def memory() -> None:
     pu = usage * progress_length // 100
     pr = progress_length - pu
 
-    outputs['Memory'] = f" Usage: 〉{'━' * pu}{'╍' * pr}〈 {usage:.2f}% =~ {used}GB / {total}GB"
+    outputs['Memory'] = f" Usage: [{'━' * pu}{'╍' * pr}] {usage:.2f}% =~ {used}GB / {total}GB"
 
 
 @exception_handler(RuntimeWarning, PermissionError, OSError, cause=EXEC_ERROR.format('Swap'))
@@ -660,7 +660,7 @@ def swap() -> None:
     pu = usage * progress_length // 100
     pr = progress_length - pu
 
-    outputs['Swap'] = f" Usage: 〉{'━' * pu}{'╍' * pr}〈 {usage:.2f}% =~ {used}GB / {total}GB"
+    outputs['Swap'] = f" Usage: [{'━' * pu}{'╍' * pr}] {usage:.2f}% =~ {used}GB / {total}GB"
 
 
 @exception_handler(RuntimeWarning, PermissionError, OSError, cause=EXEC_ERROR.format('Disk'))
@@ -678,7 +678,7 @@ def disk() -> None:
 
 def ping() -> str:
     dns = config.get('dns', '8.8.8.8')
-    cmd = f"ping -c 1 {dns}"
+    cmd = f"ping -c 1 {dns} -i 0.1 -W 0.5"
 
     if not ifaces_addr:
         return f"Ping: 999ms {PING}  {dns}"
@@ -852,7 +852,6 @@ def main() -> None:
     disk()
     network()
     uptime()
-    clear()
 
     # Draw system info
     # -------------------------------------------------------------------
@@ -893,4 +892,5 @@ def main() -> None:
     # o.show(style='rounded')
 
 if __name__ == '__main__':
+    clear()
     main()
