@@ -16,7 +16,7 @@ ALPHA = "[purple]alpha[/]"
 STABLE = "[green]stable[/]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v1.2.0-{STABLE}"
+__version__ = f"v1.2.3-{STABLE}"
 __project__ = "Pacman Fetch"
 
 import os
