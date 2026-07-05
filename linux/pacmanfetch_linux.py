@@ -16,7 +16,7 @@ ALPHA = "[purple]alpha[/]"
 STABLE = "[green]stable[/]"
 
 __repo__ = "https://github.com/mehrdad-mixtape/Pacman_Fetch"
-__version__ = f"v1.2.3-{STABLE}"
+__version__ = f"v1.2.4-{STABLE}"
 __project__ = "Pacman Fetch"
 
 import os
@@ -784,7 +784,7 @@ def kernel() -> None:
 
 def display() -> None:
     try:
-        cmd = "xrandr | awk 'match($0,/[0-9]*\.[0-9]*\*/)'"
+        cmd = r"xrandr | awk 'match($0,/[0-9]*\.[0-9]*\*/)'"
         all_info = subprocess.check_output(
             cmd, shell=True, stderr=subprocess.DEVNULL
         ).decode().strip().split('\n')
